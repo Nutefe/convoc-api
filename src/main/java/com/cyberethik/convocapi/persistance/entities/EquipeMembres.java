@@ -1,0 +1,59 @@
+// 
+// Decompiled by Procyon v0.5.36
+// 
+
+package com.cyberethik.convocapi.persistance.entities;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.Data;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import javax.persistence.*;
+import java.io.Serializable;
+import java.util.Date;
+
+@Data
+
+@Entity
+@Table(name = "equipeMembres")
+@JsonIgnoreProperties(value = { "updatedAt", "deleted", "version" })
+@EntityListeners({ AuditingEntityListener.class })
+public class EquipeMembres implements Serializable
+{
+    private static final long serialVersionUID = 1L;
+    @EmbeddedId
+    protected EquipeMembrePK id;
+    @JoinColumn(name = "role", referencedColumnName = "id")
+    @ManyToOne(fetch = FetchType.EAGER)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private Roles role;
+    @Column(name = "deleted", columnDefinition="tinyint(1) default 0")
+    private boolean deleted;
+    @Version
+    @Basic(optional = false)
+    @Column(nullable = false)
+    private int version;
+    @CreatedDate
+    @Column(name = "created_at", nullable = false)
+    @Temporal(TemporalType.TIMESTAMP)
+    @JsonFormat(pattern="yyyy-MM-dd HH:mm:ss")
+    private Date createdAt;
+    @Column(name = "updated_at", nullable = false)
+    @Temporal(TemporalType.TIMESTAMP)
+    @JsonFormat(pattern="yyyy-MM-dd HH:mm:ss")
+    @LastModifiedDate
+    private Date updatedAt;
+
+    public EquipeMembres() {
+        this.deleted = false;
+    }
+
+    public EquipeMembres(EquipeMembrePK id) {
+        this.id = id;
+    }
+}
