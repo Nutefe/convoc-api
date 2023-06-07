@@ -84,10 +84,10 @@ public interface ReponseRepository extends JpaRepository<Reponses, Long> {
             "x.convocation.membre.responsable.adresse LIKE CONCAT('%',:search,'%') OR " +
             "x.convocation.evenement.description LIKE CONCAT('%',:search,'%')) AND (x.deleted = false AND x.convocation.evenement = :evenement)")
     Long countRecherche(Evenements evenement, String search);
-    @Query("SELECT x FROM Reponses x WHERE (x.deleted = false AND x.convocation.evenement.id IN :events)")
+    @Query("SELECT DISTINCT x FROM Reponses x WHERE (x.deleted = false AND x.convocation.evenement.id IN :events)")
     List<Reponses> selectByEvenement(List<Long> events, Pageable pageable);
 
-    @Query("SELECT x FROM Reponses x WHERE " +
+    @Query("SELECT DISTINCT x FROM Reponses x WHERE " +
             "(x.choix LIKE CONCAT('%',:search,'%') OR x.description LIKE CONCAT('%',:search,'%') OR " +
             "x.dateEnvoi LIKE CONCAT('%',:search,'%') OR " +
             "x.convocation.evenement.libelle LIKE CONCAT('%',:search,'%') OR " +
@@ -101,10 +101,10 @@ public interface ReponseRepository extends JpaRepository<Reponses, Long> {
             "x.convocation.evenement.description LIKE CONCAT('%',:search,'%')) AND (x.deleted = false AND x.convocation.evenement.id IN :events)")
     List<Reponses> recherche(List<Long> events, String search, Pageable pageable);
 
-    @Query("SELECT COUNT(x) FROM Reponses x WHERE (x.deleted = false AND x.convocation.evenement.id IN :events)")
+    @Query("SELECT COUNT(DISTINCT x) FROM Reponses x WHERE (x.deleted = false AND x.convocation.evenement.id IN :events)")
     Long countReponses(List<Long> events);
 
-    @Query("SELECT COUNT(x) FROM Reponses x WHERE " +
+    @Query("SELECT COUNT(DISTINCT x) FROM Reponses x WHERE " +
             "(x.choix LIKE CONCAT('%',:search,'%') OR x.description LIKE CONCAT('%',:search,'%') OR " +
             "x.dateEnvoi LIKE CONCAT('%',:search,'%') OR " +
             "x.convocation.evenement.libelle LIKE CONCAT('%',:search,'%') OR " +

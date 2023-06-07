@@ -65,4 +65,39 @@ public class ResponsableImp implements ResponsableDao {
     public void delete(Responsables responsable) {
         repository.delete(responsable);
     }
+
+    @Override
+    public List<Responsables> seletByOrganisation(List<Long> orgs) {
+        return repository.seletByOrganisation(orgs);
+    }
+
+    @Override
+    public List<Responsables> seletByOrganisation(List<Long> orgs, Pageable pageable) {
+        return repository.seletByOrganisation(orgs, pageable);
+    }
+
+    @Override
+    public List<Responsables> recherche(List<Long> orgs, String search, Pageable pageable) {
+        return repository.recherche(orgs, search, pageable);
+    }
+
+    @Override
+    public Long countOrganisation(List<Long> orgs) {
+        return repository.countOrganisation(orgs);
+    }
+
+    @Override
+    public Long countRecherche(List<Long> orgs, String search) {
+        return repository.countRecherche(orgs, search);
+    }
+
+    @Override
+    public boolean existsByEmail(String email, Long id) {
+        return repository.existsByEmail(email, id);
+    }
+
+    @Override
+    public boolean existsByEmail(String email) {
+        return repository.existsByEmail(email);
+    }
 }

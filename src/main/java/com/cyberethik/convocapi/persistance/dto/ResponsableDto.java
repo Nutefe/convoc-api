@@ -20,5 +20,6 @@ public class ResponsableDto
     private String libelle;
     private String telephone;
     private String adresse;
+    @JsonFormat(pattern="yyyy-MM-dd HH:mm:ss")
     private Date createdAt;
 }

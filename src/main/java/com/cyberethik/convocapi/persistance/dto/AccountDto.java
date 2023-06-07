@@ -23,7 +23,7 @@ public class AccountDto
     private boolean emailVerified;
     private boolean actif;
     private Date emailVerifiedAt;
-    private List<Organisations> organistions = new ArrayList<>();
+    private List<OrganisationDto> organistions = new ArrayList<>();
     private String createdAt;
 //    public Date getSubmissionDateConverted(){
 //        return Helpers.getDateFromString(this.created);

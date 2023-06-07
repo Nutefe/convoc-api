@@ -83,7 +83,7 @@ public class ReponseController {
         reponse.setDescription(request.getDescription());
         reponse.setAlerte(request.isAlerte());
         reponse.setDateEnvoi(new Date());
-        reponse.setConvocation(this.convocationDao.selectById(request.getConvocation().getId()));
+        reponse.setConvocation(this.convocationDao.selectBySlug(request.getSlug()));
         return ResponseEntity.ok(this.reponseDao.save(reponse));
     }
     @RequestMapping(value = { "/reponse/update/{id}" }, method = { RequestMethod.PUT })
@@ -94,7 +94,7 @@ public class ReponseController {
         reponse.setDescription(request.getDescription());
         reponse.setAlerte(request.isAlerte());
         reponse.setDateEnvoi(new Date());
-        reponse.setConvocation(this.convocationDao.selectById(request.getConvocation().getId()));
+        reponse.setConvocation(this.convocationDao.selectBySlug(request.getSlug()));
         return ResponseEntity.ok(this.reponseDao.save(reponse));
     }
     
@@ -247,7 +247,7 @@ public class ReponseController {
     public ResponsePage selectPage(@PathVariable(value = "page") int page,
                                    @CurrentUser final UserDetailsImpl currentUser){
 
-        Pageable pageable = PageRequest.of(page - 1, page_size, sortByCreatedDesc());
+        Pageable pageable = PageRequest.of(page - 1, page_size);
         final Accounts account = this.accountDao.selectById(currentUser.getId());
         List<Long> ids = this.accountOrganisationDao.selectByAccountIds(account);
         List<Long> events = this.evenementEquipeDao.selectByOrganisationIds(ids);
@@ -311,7 +311,7 @@ public class ReponseController {
     public ResponsePage searchPage(@RequestParam(name="page") int page,
                                    @RequestParam(name="s") String s,
                                    @CurrentUser final UserDetailsImpl currentUser){
-        Pageable pageable = PageRequest.of(page - 1, page_size, sortByCreatedDesc());
+        Pageable pageable = PageRequest.of(page - 1, page_size);
         final Accounts account = this.accountDao.selectById(currentUser.getId());
         List<Long> ids = this.accountOrganisationDao.selectByAccountIds(account);
         List<Long> events = this.evenementEquipeDao.selectByOrganisationIds(ids);
@@ -376,7 +376,7 @@ public class ReponseController {
     public ResponsePage selectPage(@PathVariable(value = "page") int page,
                                    @PathVariable(value = "id") Long id){
 
-        Pageable pageable = PageRequest.of(page - 1, page_size, sortByCreatedDesc());
+        Pageable pageable = PageRequest.of(page - 1, page_size);
         final Evenements evenement = this.evenementDao.selectById(id);
         List<Reponses> reponses = this.reponseDao.selectByEvenement(evenement, pageable);
 
@@ -439,7 +439,7 @@ public class ReponseController {
                                     @RequestParam(name="page") int page,
                                     @RequestParam(value = "id") Long id,
                                    @RequestParam(name="s") String s){
-        Pageable pageable = PageRequest.of(page - 1, page_size, sortByCreatedDesc());
+        Pageable pageable = PageRequest.of(page - 1, page_size);
         final Evenements evenement = this.evenementDao.selectById(id);
         List<Reponses> reponses = this.reponseDao.recherche(evenement, s, pageable);
 

@@ -36,6 +36,16 @@ public class EquipeMembreImp implements EquipeMembreDao {
     }
 
     @Override
+    public List<Equipes> selectByMembre(Membres membre) {
+        return repository.selectByMembre(membre);
+    }
+
+    @Override
+    public List<Long> selectByMembreIds(Membres membre) {
+        return repository.selectByMembreIds(membre);
+    }
+
+    @Override
     public List<Membres> selectByEquipe(Equipes equipe, Pageable pageable) {
         return repository.selectByEquipe(equipe, pageable);
     }
@@ -113,5 +123,15 @@ public class EquipeMembreImp implements EquipeMembreDao {
     @Override
     public void delete(List<EquipeMembres> equipeMembres) {
         repository.deleteAll(equipeMembres);
+    }
+
+    @Override
+    public Long countByOrganisation(Long orgs) {
+        return repository.countByOrganisation(orgs);
+    }
+
+    @Override
+    public List<Membres> selectByEquipes(List<Long> eqp) {
+        return repository.selectByEquipes(eqp);
     }
 }

@@ -1,7 +1,13 @@
 package com.cyberethik.convocapi.controller;
 
+import com.cyberethik.convocapi.persistance.dto.AccountDto;
+import com.cyberethik.convocapi.persistance.dto.EquipeDto;
+import com.cyberethik.convocapi.persistance.dto.MembreDto;
 import com.cyberethik.convocapi.persistance.entities.*;
 import com.cyberethik.convocapi.persistance.service.dao.*;
+import com.cyberethik.convocapi.persistance.utils.UtilAccount;
+import com.cyberethik.convocapi.persistance.utils.UtilEquipe;
+import com.cyberethik.convocapi.persistance.utils.UtilMembre;
 import com.cyberethik.convocapi.playload.pages.ResponsePage;
 import com.cyberethik.convocapi.playload.request.LongRequest;
 import com.cyberethik.convocapi.playload.request.MembreRequest;
@@ -61,6 +67,10 @@ public class MembreController {
     private OrganisationDao organisationDao;
     @Autowired
     private ResponsableDao responsableDao;
+    @Autowired
+    private EvenementDao evenementDao;
+    @Autowired
+    private EvenementEquipeDao evenementEquipeDao;
     public MembreController() {
     }
     
@@ -147,21 +157,69 @@ public class MembreController {
     }
     @RequestMapping(value = { "/membres" }, method = { RequestMethod.GET })
     @ResponseStatus(HttpStatus.OK)
-    public List<Membres> selectAll() {
-        return this.membreDao.findByDeletedFalseOrderByIdDesc();
+    public List<MembreDto> selectAll() {
+        List<Membres> membres = this.membreDao.findByDeletedFalseOrderByIdDesc();
+
+        List<MembreDto> membreDtos = new ArrayList<>();
+
+        membres.forEach(membre ->{
+            List<Equipes> equipes = this.equipeMembreDao.selectByMembre(membre);
+            MembreDto membreDto = UtilMembre.convertToDto(membre, modelMapper);
+            membreDto.setEquipes(equipes);
+            membreDtos.add(membreDto);
+        });
+        return membreDtos;
+    }
+    @RequestMapping(value = { "/membres/evenement/{id}" }, method = { RequestMethod.GET })
+    @ResponseStatus(HttpStatus.OK)
+    public List<MembreDto> selectEvenement(@PathVariable(value = "id") Long id) {
+        Evenements evenement = this.evenementDao.selectById(id);
+        List<Long> ids = this.evenementEquipeDao.selectByEvenementIds(evenement);
+        List<Membres> membres = this.equipeMembreDao.selectByEquipes(ids);
+
+        List<MembreDto> membreDtos = new ArrayList<>();
+
+        membres.forEach(membre ->{
+            List<Equipes> equipes = this.equipeMembreDao.selectByMembre(membre);
+            MembreDto membreDto = UtilMembre.convertToDto(membre, modelMapper);
+            membreDto.setEquipes(equipes);
+            membreDtos.add(membreDto);
+        });
+        return membreDtos;
     }
     @RequestMapping(value = { "/membres/equipe/{id}" }, method = { RequestMethod.GET })
     @ResponseStatus(HttpStatus.OK)
-    public List<Membres> selectAll(@PathVariable(value = "id") Long id) {
+    public List<MembreDto> selectAll(@PathVariable(value = "id") Long id) {
         final Equipes equipe = this.equipeDao.selectById(id);
-        return this.equipeMembreDao.selectByEquipe(equipe);
+        List<Membres> membres = this.equipeMembreDao.selectByEquipe(equipe);
+
+        List<MembreDto> membreDtos = new ArrayList<>();
+
+        membres.forEach(membre ->{
+            List<Equipes> equipes = this.equipeMembreDao.selectByMembre(membre);
+            MembreDto membreDto = UtilMembre.convertToDto(membre, modelMapper);
+            membreDto.setEquipes(equipes);
+            membreDtos.add(membreDto);
+        });
+        return membreDtos;
     }
     @RequestMapping(value = { "/membres/organisation" }, method = { RequestMethod.GET })
     @ResponseStatus(HttpStatus.OK)
-    public List<Membres> selectAll(@CurrentUser final UserDetailsImpl currentUser) {
+    public List<MembreDto> selectAll(@CurrentUser final UserDetailsImpl currentUser) {
         final Accounts account = this.accountDao.selectById(currentUser.getId());
         List<Long> ids = this.accountOrganisationDao.selectByAccountIds(account);
-        return this.equipeMembreDao.selectByOrganisation(ids);
+
+        List<Membres> membres = this.equipeMembreDao.selectByOrganisation(ids);
+
+        List<MembreDto> membreDtos = new ArrayList<>();
+
+        membres.forEach(membre ->{
+            List<Equipes> equipes = this.equipeMembreDao.selectByMembre(membre);
+            MembreDto membreDto = UtilMembre.convertToDto(membre, modelMapper);
+            membreDto.setEquipes(equipes);
+            membreDtos.add(membreDto);
+        });
+        return membreDtos;
     }
     @RequestMapping(value ="/membres/page/{page}", method = RequestMethod.GET)
     @ResponseBody
@@ -170,6 +228,15 @@ public class MembreController {
         Pageable pageable = PageRequest.of(page - 1, page_size, sortByCreatedDesc());
 
         List<Membres> membres = this.membreDao.findByDeletedFalseOrderByIdDesc(pageable);
+
+        List<MembreDto> membreDtos = new ArrayList<>();
+
+        membres.forEach(membre ->{
+            List<Equipes> equipes = this.equipeMembreDao.selectByMembre(membre);
+            MembreDto membreDto = UtilMembre.convertToDto(membre, modelMapper);
+            membreDto.setEquipes(equipes);
+            membreDtos.add(membreDto);
+        });
 
         ResponsePage pages = new ResponsePage();
 
@@ -205,7 +272,7 @@ public class MembreController {
                 pages.setTo(Long.valueOf(page_size) * page);
             }
             pages.setPath(path);
-            pages.setData(membres);
+            pages.setData(membreDtos);
         } else {
             pages.setTotal(0L);
             pages.setCurrent_page(0);
@@ -230,7 +297,14 @@ public class MembreController {
                                      @RequestParam(name="s") String s){
         Pageable pageable = PageRequest.of(page - 1, page_size, sortByCreatedDesc());
         List<Membres> membres = this.membreDao.recherche(s, pageable);
+        List<MembreDto> membreDtos = new ArrayList<>();
 
+        membres.forEach(membre ->{
+            List<Equipes> equipes = this.equipeMembreDao.selectByMembre(membre);
+            MembreDto membreDto = UtilMembre.convertToDto(membre, modelMapper);
+            membreDto.setEquipes(equipes);
+            membreDtos.add(membreDto);
+        });
         ResponsePage pages = new ResponsePage();
         Long total = this.membreDao.countRecherche(s);
         Long lastPage;
@@ -265,7 +339,7 @@ public class MembreController {
             }
 
             pages.setPath(path);
-            pages.setData(membres);
+            pages.setData(membreDtos);
 
         }else {
             pages.setTotal(0L);
@@ -290,11 +364,18 @@ public class MembreController {
     public ResponsePage selectPage(@PathVariable(value = "page") int page,
                                    @CurrentUser final UserDetailsImpl currentUser){
 
-        Pageable pageable = PageRequest.of(page - 1, page_size, sortByCreatedDesc());
+        Pageable pageable = PageRequest.of(page - 1, page_size);
         final Accounts account = this.accountDao.selectById(currentUser.getId());
         List<Long> ids = this.accountOrganisationDao.selectByAccountIds(account);
         List<Membres> membres = this.equipeMembreDao.selectByOrganisation(ids, pageable);
+        List<MembreDto> membreDtos = new ArrayList<>();
 
+        membres.forEach(membre ->{
+            List<Equipes> equipes = this.equipeMembreDao.selectByMembre(membre);
+            MembreDto membreDto = UtilMembre.convertToDto(membre, modelMapper);
+            membreDto.setEquipes(equipes);
+            membreDtos.add(membreDto);
+        });
         ResponsePage pages = new ResponsePage();
 
         Long total = this.equipeMembreDao.countByOrganisation(ids);
@@ -329,7 +410,7 @@ public class MembreController {
                 pages.setTo(Long.valueOf(page_size) * page);
             }
             pages.setPath(path);
-            pages.setData(membres);
+            pages.setData(membreDtos);
         } else {
             pages.setTotal(0L);
             pages.setCurrent_page(0);
@@ -353,11 +434,18 @@ public class MembreController {
     public ResponsePage searchPage(@RequestParam(name="page") int page,
                                    @RequestParam(name="s") String s,
                                    @CurrentUser final UserDetailsImpl currentUser){
-        Pageable pageable = PageRequest.of(page - 1, page_size, sortByCreatedDesc());
+        Pageable pageable = PageRequest.of(page - 1, page_size);
         final Accounts account = this.accountDao.selectById(currentUser.getId());
         List<Long> ids = this.accountOrganisationDao.selectByAccountIds(account);
         List<Membres> membres = this.equipeMembreDao.recherche(ids, s, pageable);
+        List<MembreDto> membreDtos = new ArrayList<>();
 
+        membres.forEach(membre ->{
+            List<Equipes> equipes = this.equipeMembreDao.selectByMembre(membre);
+            MembreDto membreDto = UtilMembre.convertToDto(membre, modelMapper);
+            membreDto.setEquipes(equipes);
+            membreDtos.add(membreDto);
+        });
         ResponsePage pages = new ResponsePage();
         Long total = this.equipeMembreDao.countRecherche(ids, s);
         Long lastPage;
@@ -392,7 +480,7 @@ public class MembreController {
             }
 
             pages.setPath(path);
-            pages.setData(membres);
+            pages.setData(membreDtos);
 
         }else {
             pages.setTotal(0L);
@@ -417,10 +505,17 @@ public class MembreController {
     public ResponsePage selectPage(@PathVariable(value = "page") int page,
                                    @PathVariable(value = "id") Long id){
 
-        Pageable pageable = PageRequest.of(page - 1, page_size, sortByCreatedDesc());
+        Pageable pageable = PageRequest.of(page - 1, page_size);
         final Equipes equipe = this.equipeDao.selectById(id);
         List<Membres> membres = this.equipeMembreDao.selectByEquipe(equipe, pageable);
+        List<MembreDto> membreDtos = new ArrayList<>();
 
+        membres.forEach(membre ->{
+            List<Equipes> equipes = this.equipeMembreDao.selectByMembre(membre);
+            MembreDto membreDto = UtilMembre.convertToDto(membre, modelMapper);
+            membreDto.setEquipes(equipes);
+            membreDtos.add(membreDto);
+        });
         ResponsePage pages = new ResponsePage();
 
         Long total = this.equipeMembreDao.countByEquipe(equipe);
@@ -455,7 +550,7 @@ public class MembreController {
                 pages.setTo(Long.valueOf(page_size) * page);
             }
             pages.setPath(path);
-            pages.setData(membres);
+            pages.setData(membreDtos);
         } else {
             pages.setTotal(0L);
             pages.setCurrent_page(0);
@@ -480,10 +575,17 @@ public class MembreController {
                                     @RequestParam(name="page") int page,
                                     @RequestParam(value = "id") Long id,
                                    @RequestParam(name="s") String s){
-        Pageable pageable = PageRequest.of(page - 1, page_size, sortByCreatedDesc());
+        Pageable pageable = PageRequest.of(page - 1, page_size);
         final Equipes equipe = this.equipeDao.selectById(id);
         List<Membres> membres = this.equipeMembreDao.recherche(equipe, s, pageable);
+        List<MembreDto> membreDtos = new ArrayList<>();
 
+        membres.forEach(membre ->{
+            List<Equipes> equipes = this.equipeMembreDao.selectByMembre(membre);
+            MembreDto membreDto = UtilMembre.convertToDto(membre, modelMapper);
+            membreDto.setEquipes(equipes);
+            membreDtos.add(membreDto);
+        });
         ResponsePage pages = new ResponsePage();
         Long total = this.equipeMembreDao.countRecherche(equipe, s);
         Long lastPage;
@@ -518,7 +620,7 @@ public class MembreController {
             }
 
             pages.setPath(path);
-            pages.setData(membres);
+            pages.setData(membreDtos);
 
         }else {
             pages.setTotal(0L);

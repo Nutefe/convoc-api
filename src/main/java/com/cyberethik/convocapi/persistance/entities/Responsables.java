@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 import org.hibernate.annotations.GenericGenerator;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -39,6 +41,10 @@ public class Responsables implements Serializable
     private String telephone;
     @Column(name = "adresse")
     private String adresse;
+    @JoinColumn(name = "organisation", referencedColumnName = "id")
+    @ManyToOne(fetch = FetchType.EAGER)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private Organisations organisation;
     @Column(name = "deleted", columnDefinition="tinyint(1) default 0")
     private boolean deleted;
     @Version

@@ -90,4 +90,9 @@ public class EquipeImp implements EquipeDao {
     public void delete(Equipes equipe) {
         repository.delete(equipe);
     }
+
+    @Override
+    public Long countByOrganisation(Long orgs) {
+        return repository.countByOrganisation(orgs);
+    }
 }

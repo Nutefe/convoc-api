@@ -106,4 +106,14 @@ public class ConvocationImp implements ConvocationDao {
     public void delete(Convocations convocation) {
         repository.delete(convocation);
     }
+
+    @Override
+    public Convocations selectBySlug(String slug) {
+        return repository.selectBySlug(slug);
+    }
+
+    @Override
+    public boolean existsBySlug(String slug) {
+        return repository.existsBySlug(slug);
+    }
 }

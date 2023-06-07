@@ -23,5 +23,6 @@ public class ConvocationDto
     private Date dateEnvoi;
     private Evenements evenement;
     private Membres membre;
+    @JsonFormat(pattern="yyyy-MM-dd HH:mm:ss")
     private Date createdAt;
 }

@@ -6,11 +6,11 @@ import com.cyberethik.convocapi.messaging.emails.model.Email;
 import com.cyberethik.convocapi.messaging.emails.service.EmailSenderService;
 import com.cyberethik.convocapi.persistance.entities.Accounts;
 import com.cyberethik.convocapi.persistance.entities.RefreshTokens;
-import com.cyberethik.convocapi.persistance.service.dao.AccountDao;
-import com.cyberethik.convocapi.persistance.service.dao.RefreshTokenDao;
-import com.cyberethik.convocapi.persistance.service.dao.RoleDao;
+import com.cyberethik.convocapi.persistance.entities.Reponses;
+import com.cyberethik.convocapi.persistance.service.dao.*;
 import com.cyberethik.convocapi.playload.helper.Helpers;
 import com.cyberethik.convocapi.playload.request.LoginRequest;
+import com.cyberethik.convocapi.playload.request.ReponseRequest;
 import com.cyberethik.convocapi.playload.response.ApiMessage;
 import com.cyberethik.convocapi.playload.response.JwtResponse;
 import com.cyberethik.convocapi.playload.response.TokenRefreshResponse;
@@ -56,6 +56,10 @@ public class AuthController {
   private AccountDao accountDao;
   @Autowired
   private RoleDao roleDao;
+  @Autowired
+  private ConvocationDao convocationDao;
+  @Autowired
+  private ReponseDao reponseDao;
   private final EmailSenderService emailSenderService;
   public AuthController(EmailSenderService emailSenderService) {
     this.emailSenderService = emailSenderService;
@@ -107,7 +111,7 @@ public class AuthController {
       Email emailInit = new Email();
       emailInit.setTo(accounts.getEmail());
       emailInit.setFrom(sender);
-      emailInit.setSubject("Validation de l’adresse e-mail ");
+      emailInit.setSubject("Reinitialise votre mot de passe ");
       emailInit.setTemplate("email-forgot-password.html");
       Map<String, Object> properties = new HashMap<>();
       properties.put("name", accounts.getLibelle());
@@ -134,6 +138,16 @@ public class AuthController {
     }
   }
 
+  @RequestMapping(value = { "/auth/reponse/save" }, method = { RequestMethod.POST })
+  public ResponseEntity<?> reponseSave(@Valid @RequestBody final ReponseRequest request) throws MessagingException {
+    Reponses reponse = new Reponses();
+    reponse.setChoix(request.getChoix());
+    reponse.setDescription(request.getDescription());
+    reponse.setAlerte(request.isAlerte());
+    reponse.setDateEnvoi(new Date());
+    reponse.setConvocation(this.convocationDao.selectBySlug(request.getSlug()));
+    return ResponseEntity.ok(this.reponseDao.save(reponse));
+  }
 
 //  @RequestMapping(value = { "/auth/candidat/signin/up" }, method = { RequestMethod.POST })
 //  public ResponseEntity<?> signinUpAllCheck(@Valid @RequestBody final CandidatRequest request) throws MessagingException {

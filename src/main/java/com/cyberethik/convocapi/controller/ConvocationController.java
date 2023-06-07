@@ -11,6 +11,7 @@ import com.cyberethik.convocapi.playload.request.EvenementRequest;
 import com.cyberethik.convocapi.playload.request.LongRequest;
 import com.cyberethik.convocapi.security.services.CurrentUser;
 import com.cyberethik.convocapi.security.services.UserDetailsImpl;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.mail.MessagingException;
 import javax.validation.Valid;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.cyberethik.convocapi.playload.helper.Helpers.sortByCreatedDesc;
 
@@ -80,30 +82,94 @@ public class ConvocationController {
         if (request.getMembres().size() > 0){
             for (Membres mem :
                     request.getMembres()) {
+
+                String slug;
+                do {
+                    int length = 10;
+                    boolean useLetters = true;
+                    boolean useNumbers = true;
+                    slug = RandomStringUtils.random(length, useLetters, useNumbers);
+                }while (this.convocationDao.existsBySlug(slug));
+
                 Membres membre = this.membreDao.selectById(mem.getId());
                 Convocations convocation = new Convocations();
                 convocation.setEvenement(evenement);
                 convocation.setDateEnvoi(new Date());
                 convocation.setMembre(membre);
+                convocation.setSlug(slug);
                 Convocations convocationSave=this.convocationDao.save(convocation);
                 
+                if (convocationSave!=null && membre != null){
+                    Email emailInit = new Email();
+                    emailInit.setTo(membre.getResponsable().getEmail());
+                    emailInit.setFrom(sender);
+                    emailInit.setSubject("Convocation a un evenement");
+                    emailInit.setTemplate("email-convocation.html");
+                    Map<String, Object> properties = new HashMap<>();
+                    properties.put("name", membre.getResponsable().getLibelle());
+                    properties.put("link", Helpers.base_client_url+"reponse/convoc/"+convocationSave.getSlug());
+                    emailInit.setProperties(properties);
+                    emailSenderService.sendHtmlMessage(emailInit);
+                    convocationSave.setEnvoyer(true);
+                    this.convocationDao.save(convocationSave);
+                }
+            }
+            evenement.setEnvoyer(true);
+            this.evenementDao.save(evenement);
+        }
+    }
+
+    @RequestMapping(value = { "/convocation/equipe/save" }, method = { RequestMethod.POST })
+    public void convocationEquipeSave(@Valid @RequestBody final ConvocationRequest request) throws MessagingException {
+        Evenements evenement = this.evenementDao.selectById(request.getEvenement().getId());
+        List<Membres> membres = new ArrayList<>();
+        for (Equipes equipe :
+                request.getEquipes()) {
+            Equipes equipeIn = this.equipeDao.selectById(equipe.getId());
+            List<Membres> memb = this.equipeMembreDao.selectByEquipe(equipeIn);
+            membres.addAll(memb);
+        }
+        List<Membres> membresList = membres.stream().distinct().collect(Collectors.toList());
+        if (membresList.size() > 0){
+            for (Membres mem :
+                    membresList) {
+
+                String slug;
+                do {
+                    int length = 10;
+                    boolean useLetters = true;
+                    boolean useNumbers = true;
+                    slug = RandomStringUtils.random(length, useLetters, useNumbers);
+                }while (this.convocationDao.existsBySlug(slug));
+
+                Membres membre = this.membreDao.selectById(mem.getId());
+                Convocations convocation = new Convocations();
+                convocation.setEvenement(evenement);
+                convocation.setDateEnvoi(new Date());
+                convocation.setMembre(membre);
+                convocation.setSlug(slug);
+                Convocations convocationSave=this.convocationDao.save(convocation);
+
                 if (convocationSave!=null){
                     Email emailInit = new Email();
                     emailInit.setTo(membre.getResponsable().getEmail());
                     emailInit.setFrom(sender);
-                    emailInit.setSubject("Validation de l’adresse e-mail ");
-                    emailInit.setTemplate("email-forgot-password.html");
+                    emailInit.setSubject("Convocation a un evenement");
+                    emailInit.setTemplate("email-convocation.html");
                     Map<String, Object> properties = new HashMap<>();
                     properties.put("name", membre.getResponsable().getLibelle());
-                    properties.put("link", Helpers.base_client_url+"convocation/reponse/"+membre.getSlug());
+                    properties.put("link", Helpers.base_client_url+"reponse/convoc/"+convocationSave.getSlug());
                     emailInit.setProperties(properties);
                     emailSenderService.sendHtmlMessage(emailInit);
+                    convocationSave.setEnvoyer(true);
+                    this.convocationDao.save(convocationSave);
                 }
-                
             }
+            evenement.setEnvoyer(true);
+            this.evenementDao.save(evenement);
         }
     }
-    
+
     @RequestMapping(value = { "/convocation/delete/{id}" }, method = { RequestMethod.DELETE })
     public void convocationUpdate(@PathVariable(value = "id") Long id) throws MessagingException {
         final Convocations convocation = this.convocationDao.selectById(id);
@@ -253,7 +319,7 @@ public class ConvocationController {
     public ResponsePage selectPage(@PathVariable(value = "page") int page,
                                    @CurrentUser final UserDetailsImpl currentUser){
 
-        Pageable pageable = PageRequest.of(page - 1, page_size, sortByCreatedDesc());
+        Pageable pageable = PageRequest.of(page - 1, page_size);
         final Accounts account = this.accountDao.selectById(currentUser.getId());
         List<Long> ids = this.accountOrganisationDao.selectByAccountIds(account);
         List<Long> events = this.evenementEquipeDao.selectByOrganisationIds(ids);
@@ -317,7 +383,7 @@ public class ConvocationController {
     public ResponsePage searchPage(@RequestParam(name="page") int page,
                                    @RequestParam(name="s") String s,
                                    @CurrentUser final UserDetailsImpl currentUser){
-        Pageable pageable = PageRequest.of(page - 1, page_size, sortByCreatedDesc());
+        Pageable pageable = PageRequest.of(page - 1, page_size);
         final Accounts account = this.accountDao.selectById(currentUser.getId());
         List<Long> ids = this.accountOrganisationDao.selectByAccountIds(account);
         List<Long> events = this.evenementEquipeDao.selectByOrganisationIds(ids);
@@ -382,7 +448,7 @@ public class ConvocationController {
     public ResponsePage selectPage(@PathVariable(value = "page") int page,
                                    @PathVariable(value = "id") Long id){
 
-        Pageable pageable = PageRequest.of(page - 1, page_size, sortByCreatedDesc());
+        Pageable pageable = PageRequest.of(page - 1, page_size);
         final Evenements evenement = this.evenementDao.selectById(id);
         List<Convocations> convocations = this.convocationDao.selectByEvenement(evenement, pageable);
 
@@ -444,7 +510,7 @@ public class ConvocationController {
     public ResponsePage searchPage(@RequestParam(name="page") int page,
                                    @RequestParam(value = "id") Long id,
                                    @RequestParam(name="s") String s){
-        Pageable pageable = PageRequest.of(page - 1, page_size, sortByCreatedDesc());
+        Pageable pageable = PageRequest.of(page - 1, page_size);
         final Evenements evenement = this.evenementDao.selectById(id);
         List<Convocations> convocations = this.convocationDao.recherche(evenement, s, pageable);
 

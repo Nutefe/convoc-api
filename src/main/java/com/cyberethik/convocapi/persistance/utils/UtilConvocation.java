@@ -1,9 +1,7 @@
 package com.cyberethik.convocapi.persistance.utils;
 
 import com.cyberethik.convocapi.persistance.dto.ConvocationDto;
-import com.cyberethik.convocapi.persistance.dto.OrganistionDto;
 import com.cyberethik.convocapi.persistance.entities.Convocations;
-import com.cyberethik.convocapi.persistance.entities.Organisations;
 import org.modelmapper.ModelMapper;
 
 import java.text.ParseException;

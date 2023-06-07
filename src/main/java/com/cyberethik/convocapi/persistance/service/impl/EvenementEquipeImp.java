@@ -35,7 +35,17 @@ public class EvenementEquipeImp implements EvenementEquipeDao
     }
 
     @Override
+    public List<Equipes> selectByEvenement(Evenements evenement) {
+        return repository.selectByEvenement(evenement);
+    }
+
+    @Override
     public List<Evenements> selectByEquipe(Equipes equipe) {
+        return repository.selectByEquipe(equipe);
+    }
+
+    @Override
+    public List<Evenements> selectByEquipe(List<Long> equipe) {
         return repository.selectByEquipe(equipe);
     }
 
@@ -67,6 +77,11 @@ public class EvenementEquipeImp implements EvenementEquipeDao
     @Override
     public List<Long> selectByOrganisationIds(List<Long> orgs) {
         return repository.selectByOrganisationIds(orgs);
+    }
+
+    @Override
+    public List<Long> selectByEvenementIds(Evenements evenement) {
+        return repository.selectByEvenementIds(evenement);
     }
 
     @Override

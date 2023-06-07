@@ -25,4 +25,5 @@ public interface EquipeDao {
     Long countOrganisation(List<Long> orgs);
     Long countRecherche(List<Long> orgs, String search);
     void delete(Equipes equipe);
+    Long countByOrganisation(Long orgs);
 }

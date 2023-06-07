@@ -45,6 +45,10 @@ public class Convocations implements Serializable
     @ManyToOne(fetch = FetchType.EAGER)
     @OnDelete(action = OnDeleteAction.CASCADE)
     private Membres membre;
+    @Column(name = "slug", unique = true)
+    private String slug;
+    @Column(name = "envoyer", columnDefinition="tinyint(1) default 0")
+    private boolean envoyer;
     @Column(name = "deleted", columnDefinition="tinyint(1) default 0")
     private boolean deleted;
     @Version

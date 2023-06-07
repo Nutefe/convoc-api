@@ -29,7 +29,8 @@ public class Helpers
 //    public static String base_file_url = "http://localhost:9197/web/service/";
 //    public static String base_file_url = "http://localhost:8080/enacp-rest-api/web/service/";
 //    public static String base_client_url = "http://localhost:5173/";
-    public static String base_client_url = "https://client2k23.enacp.com/";
+    public static String base_client_url = "http://192.168.1.70:8080/";
+//    public static String base_client_url = "https://client2k23.enacp.com/";
     private static final Pattern NONLATIN = Pattern.compile("[^\\w-]");
     private static final Pattern WHITESPACE = Pattern.compile("[\\s]");
 

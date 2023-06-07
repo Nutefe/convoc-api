@@ -1,11 +1,11 @@
 package com.cyberethik.convocapi.controller;
 
-import com.cyberethik.convocapi.persistance.entities.Files;
-import com.cyberethik.convocapi.persistance.entities.Organisations;
-import com.cyberethik.convocapi.persistance.entities.Responsables;
-import com.cyberethik.convocapi.persistance.service.dao.FileDao;
-import com.cyberethik.convocapi.persistance.service.dao.OrganisationDao;
-import com.cyberethik.convocapi.persistance.service.dao.ResponsableDao;
+import com.cyberethik.convocapi.persistance.dto.MembreDto;
+import com.cyberethik.convocapi.persistance.dto.OrganisationDto;
+import com.cyberethik.convocapi.persistance.entities.*;
+import com.cyberethik.convocapi.persistance.service.dao.*;
+import com.cyberethik.convocapi.persistance.utils.UtilMembre;
+import com.cyberethik.convocapi.persistance.utils.UtilOrganisation;
 import com.cyberethik.convocapi.playload.pages.ResponsePage;
 import com.cyberethik.convocapi.playload.request.LongRequest;
 import com.cyberethik.convocapi.security.services.CurrentUser;
@@ -46,6 +46,14 @@ public class OrganisationController {
     private String url_organisation_search_page;
     @Autowired
     private OrganisationDao organisationDao;
+    @Autowired
+    private AccountOrganisationDao accountOrganisationDao;
+    @Autowired
+    private AccountDao accountDao;
+    @Autowired
+    private EquipeMembreDao equipeMembreDao;
+    @Autowired
+    private EquipeDao equipeDao;
     @Autowired
     private FileSystemStorageService fileStorageService;
     @Autowired
@@ -100,7 +108,16 @@ public class OrganisationController {
                 }
             }
         }
-        return ResponseEntity.ok(this.organisationDao.save(organisation));
+
+        Organisations organisationSave = this.organisationDao.save(organisation);
+
+        Long membres = this.equipeMembreDao.countByOrganisation(organisationSave.getId());
+        Long equipes = this.equipeDao.countByOrganisation(organisationSave.getId());
+        OrganisationDto organisationDto = UtilOrganisation.convertToDto(organisationSave, modelMapper);
+        organisationDto.setNbrEquipe(equipes);
+        organisationDto.setNbrMembre(membres);
+
+        return ResponseEntity.ok(organisationDto);
     }
     @RequestMapping(value = { "/organisation/delete/{id}" }, method = { RequestMethod.DELETE })
     public void organisationUpdate(@PathVariable(value = "id") Long id) throws MessagingException {
@@ -119,8 +136,39 @@ public class OrganisationController {
     }
     @RequestMapping(value = { "/organisations" }, method = { RequestMethod.GET })
     @ResponseStatus(HttpStatus.OK)
-    public List<Organisations> selectAll() {
-        return this.organisationDao.findByDeletedFalseOrderByIdDesc();
+    public List<OrganisationDto> selectAll() {
+        List<Organisations> organisations = this.organisationDao.findByDeletedFalseOrderByIdDesc();
+
+        List<OrganisationDto> organisationDtos = new ArrayList<>();
+
+        organisations.forEach(organisation ->{
+            Long membres = this.equipeMembreDao.countByOrganisation(organisation.getId());
+            Long equipes = this.equipeDao.countByOrganisation(organisation.getId());
+            OrganisationDto organisationDto = UtilOrganisation.convertToDto(organisation, modelMapper);
+            organisationDto.setNbrEquipe(equipes);
+            organisationDto.setNbrMembre(membres);
+            organisationDtos.add(organisationDto);
+        });
+        return organisationDtos;
+    }
+    @RequestMapping(value = { "/organisations/user" }, method = { RequestMethod.GET })
+    @ResponseStatus(HttpStatus.OK)
+    public List<OrganisationDto> selectAll(@CurrentUser final UserDetailsImpl currentUser) {
+        Accounts account = this.accountDao.selectById(currentUser.getId());
+
+        List<Organisations> organisations = this.accountOrganisationDao.selectByAccount(account);
+
+        List<OrganisationDto> organisationDtos = new ArrayList<>();
+
+        organisations.forEach(organisation ->{
+            Long membres = this.equipeMembreDao.countByOrganisation(organisation.getId());
+            Long equipes = this.equipeDao.countByOrganisation(organisation.getId());
+            OrganisationDto organisationDto = UtilOrganisation.convertToDto(organisation, modelMapper);
+            organisationDto.setNbrEquipe(equipes);
+            organisationDto.setNbrMembre(membres);
+            organisationDtos.add(organisationDto);
+        });
+        return organisationDtos;
     }
     @RequestMapping(value ="/organisations/page/{page}", method = RequestMethod.GET)
     @ResponseBody
@@ -129,6 +177,17 @@ public class OrganisationController {
         Pageable pageable = PageRequest.of(page - 1, page_size, sortByCreatedDesc());
 
         List<Organisations> organisations = this.organisationDao.findByDeletedFalseOrderByIdDesc(pageable);
+
+        List<OrganisationDto> organisationDtos = new ArrayList<>();
+
+        organisations.forEach(organisation ->{
+            Long membres = this.equipeMembreDao.countByOrganisation(organisation.getId());
+            Long equipes = this.equipeDao.countByOrganisation(organisation.getId());
+            OrganisationDto organisationDto = UtilOrganisation.convertToDto(organisation, modelMapper);
+            organisationDto.setNbrEquipe(equipes);
+            organisationDto.setNbrMembre(membres);
+            organisationDtos.add(organisationDto);
+        });
 
         ResponsePage pages = new ResponsePage();
 
@@ -164,7 +223,7 @@ public class OrganisationController {
                 pages.setTo(Long.valueOf(page_size) * page);
             }
             pages.setPath(path);
-            pages.setData(organisations);
+            pages.setData(organisationDtos);
         } else {
             pages.setTotal(0L);
             pages.setCurrent_page(0);
@@ -189,7 +248,16 @@ public class OrganisationController {
                                      @RequestParam(name="s") String s){
         Pageable pageable = PageRequest.of(page - 1, page_size, sortByCreatedDesc());
         List<Organisations> organisations = this.organisationDao.recherche(s, pageable);
+        List<OrganisationDto> organisationDtos = new ArrayList<>();
 
+        organisations.forEach(organisation ->{
+            Long membres = this.equipeMembreDao.countByOrganisation(organisation.getId());
+            Long equipes = this.equipeDao.countByOrganisation(organisation.getId());
+            OrganisationDto organisationDto = UtilOrganisation.convertToDto(organisation, modelMapper);
+            organisationDto.setNbrEquipe(equipes);
+            organisationDto.setNbrMembre(membres);
+            organisationDtos.add(organisationDto);
+        });
         ResponsePage pages = new ResponsePage();
         Long total = this.organisationDao.countRecherche(s);
         Long lastPage;
@@ -224,7 +292,7 @@ public class OrganisationController {
             }
 
             pages.setPath(path);
-            pages.setData(organisations);
+            pages.setData(organisationDtos);
 
         }else {
             pages.setTotal(0L);

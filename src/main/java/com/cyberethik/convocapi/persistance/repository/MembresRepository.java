@@ -1,6 +1,7 @@
 package com.cyberethik.convocapi.persistance.repository;
 
 import com.cyberethik.convocapi.persistance.entities.Accounts;
+import com.cyberethik.convocapi.persistance.entities.Evenements;
 import com.cyberethik.convocapi.persistance.entities.Membres;
 import com.cyberethik.convocapi.persistance.entities.Membres;
 import org.springframework.data.domain.Pageable;
@@ -34,4 +35,5 @@ public interface MembresRepository extends JpaRepository<Membres, Long> {
 
     @Query("SELECT CASE WHEN COUNT(slug) > 0 THEN true ELSE false END FROM Membres x WHERE x.slug = :slug")
     boolean existsBySlug(@Param("slug") final String slug);
+
 }

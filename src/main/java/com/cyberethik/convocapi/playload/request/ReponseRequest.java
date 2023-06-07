@@ -13,6 +13,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import javax.persistence.*;
+import javax.validation.constraints.NotBlank;
 import java.io.Serializable;
 import java.util.Date;
 
@@ -28,6 +29,7 @@ public class ReponseRequest {
     private String choix;
     private boolean alerte;
     private String description;
-    private Convocations convocation;
+    @NotBlank
+    private String slug;
     private Date dateEnvoi;
 }

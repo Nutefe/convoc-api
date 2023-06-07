@@ -3,9 +3,11 @@ package com.cyberethik.convocapi.controller;
 import com.cyberethik.convocapi.exception.ApiError;
 import com.cyberethik.convocapi.messaging.emails.service.EmailSenderService;
 import com.cyberethik.convocapi.persistance.dto.AccountDto;
+import com.cyberethik.convocapi.persistance.dto.OrganisationDto;
 import com.cyberethik.convocapi.persistance.entities.*;
 import com.cyberethik.convocapi.persistance.service.dao.*;
 import com.cyberethik.convocapi.persistance.utils.UtilAccount;
+import com.cyberethik.convocapi.persistance.utils.UtilOrganisation;
 import com.cyberethik.convocapi.playload.pages.AccountPage;
 import com.cyberethik.convocapi.playload.request.AccountRequest;
 import com.cyberethik.convocapi.playload.request.AccountUpdateRequest;
@@ -66,6 +68,10 @@ public class AccountController {
     private OrganisationDao organisationDao;
     @Autowired
     private AccountOrganisationDao accountOrganisationDao;
+    @Autowired
+    private EquipeMembreDao equipeMembreDao;
+    @Autowired
+    private EquipeDao equipeDao;
     private final EmailSenderService emailSenderService;
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -77,8 +83,18 @@ public class AccountController {
     public Object getCurrentUser(@CurrentUser final UserDetailsImpl currentUser) {
         final Accounts account = this.accountDao.findById(currentUser.getId()).orElseThrow(() -> new RuntimeException("Error: user is not found."));
         List<Organisations> organisations = this.accountOrganisationDao.selectByAccount(account);
+        List<OrganisationDto> organisationDtos = new ArrayList<>();
+
+        organisations.forEach(organisation ->{
+            Long membres = this.equipeMembreDao.countByOrganisation(organisation.getId());
+            Long equipes = this.equipeDao.countByOrganisation(organisation.getId());
+            OrganisationDto organisationDto = UtilOrganisation.convertToDto(organisation, modelMapper);
+            organisationDto.setNbrEquipe(equipes);
+            organisationDto.setNbrMembre(membres);
+            organisationDtos.add(organisationDto);
+        });
         AccountDto accountDto = UtilAccount.convertToDto(account, modelMapper);
-        accountDto.setOrganistions(organisations);
+        accountDto.setOrganistions(organisationDtos);
         return accountDto;
     }
     @RequestMapping(value = { "/password/update/{id}" }, method = { RequestMethod.PUT })
@@ -87,7 +103,7 @@ public class AccountController {
         Accounts account = this.accountDao.selectById(id);
         if (this.passwordEncoder.matches(request.getAncien(), account.getPassword())) {
             this.accountDao.updatePassword(account.getId(), request.getNouveau());
-            return ResponseEntity.ok(new ApiMessage(HttpStatus.OK, "Mot de passe modiier avec succès"));
+            return ResponseEntity.ok(new ApiMessage(HttpStatus.OK, "Mot de passe modifier avec succès"));
         }
         else {
             return ResponseEntity.internalServerError().body(new ApiMessage(HttpStatus.INTERNAL_SERVER_ERROR, "Erreur de modification ancien mot de passe incorrect"));
@@ -142,7 +158,8 @@ public class AccountController {
         final Accounts account = this.accountDao.selectById(id);
         account.setEmail(request.getEmail());
         account.setLibelle(request.getLibelle());
-        account.setRole(this.roleDao.selectById(request.getRole().getId()));
+        if (request.getRole() != null)
+            account.setRole(this.roleDao.selectById(request.getRole().getId()));
 
         Accounts accountSave = this.accountDao.update(account);
         if (request.getOrganisation()!=null && accountSave!=null){
@@ -192,8 +209,19 @@ public class AccountController {
 
         accounts.forEach(account ->{
             List<Organisations> organisations = this.accountOrganisationDao.selectByAccount(account);
+            List<OrganisationDto> organisationDtos = new ArrayList<>();
+
+            organisations.forEach(organisation ->{
+                Long membres = this.equipeMembreDao.countByOrganisation(organisation.getId());
+                Long equipes = this.equipeDao.countByOrganisation(organisation.getId());
+                OrganisationDto organisationDto = UtilOrganisation.convertToDto(organisation, modelMapper);
+                organisationDto.setNbrEquipe(equipes);
+                organisationDto.setNbrMembre(membres);
+                organisationDtos.add(organisationDto);
+            });
+
             AccountDto accountDto = UtilAccount.convertToDto(account, modelMapper);
-            accountDto.setOrganistions(organisations);
+            accountDto.setOrganistions(organisationDtos);
             accountDtos.add(accountDto);
         });
 
@@ -260,8 +288,18 @@ public class AccountController {
 
         accounts.forEach(account ->{
             List<Organisations> organisations = this.accountOrganisationDao.selectByAccount(account);
+            List<OrganisationDto> organisationDtos = new ArrayList<>();
+
+            organisations.forEach(organisation ->{
+                Long membres = this.equipeMembreDao.countByOrganisation(organisation.getId());
+                Long equipes = this.equipeDao.countByOrganisation(organisation.getId());
+                OrganisationDto organisationDto = UtilOrganisation.convertToDto(organisation, modelMapper);
+                organisationDto.setNbrEquipe(equipes);
+                organisationDto.setNbrMembre(membres);
+                organisationDtos.add(organisationDto);
+            });
             AccountDto accountDto = UtilAccount.convertToDto(account, modelMapper);
-            accountDto.setOrganistions(organisations);
+            accountDto.setOrganistions(organisationDtos);
             accountDtos.add(accountDto);
         });
         AccountPage pages = new AccountPage();

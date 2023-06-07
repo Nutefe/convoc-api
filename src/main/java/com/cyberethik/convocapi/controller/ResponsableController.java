@@ -1,6 +1,8 @@
 package com.cyberethik.convocapi.controller;
 
+import com.cyberethik.convocapi.exception.ApiError;
 import com.cyberethik.convocapi.persistance.entities.Accounts;
+import com.cyberethik.convocapi.persistance.entities.Organisations;
 import com.cyberethik.convocapi.persistance.entities.Responsables;
 import com.cyberethik.convocapi.persistance.entities.Roles;
 import com.cyberethik.convocapi.persistance.service.dao.*;
@@ -57,23 +59,53 @@ public class ResponsableController {
     }
     
     @RequestMapping(value = { "/responsable/save" }, method = { RequestMethod.POST })
-    public ResponseEntity<?> responsableSave(@Valid @RequestBody final Responsables request) throws MessagingException {
+    public ResponseEntity<?> responsableSave(@Valid @RequestBody final Responsables request,
+                                             @CurrentUser final UserDetailsImpl currentUser) throws MessagingException {
+
+        if (responsableDao.existsByEmail(request.getEmail())){
+            return  ResponseEntity.badRequest().body(new ApiError(HttpStatus.INTERNAL_SERVER_ERROR, "Error email already exists", "Error duplication key"));
+        }
+        final Accounts account = this.accountDao.selectById(currentUser.getId());
+        List<Organisations> organisations = this.accountOrganisationDao.selectByAccount(account);
         Responsables responsable = new Responsables();
         responsable.setLibelle(request.getLibelle());
         responsable.setEmail(request.getEmail());
         responsable.setTelephone(request.getTelephone());
         responsable.setAdresse(request.getAdresse());
+        if (organisations.size()>0)
+            responsable.setOrganisation(organisations.get(0));
         return ResponseEntity.ok(this.responsableDao.save(responsable));
     }
     @RequestMapping(value = { "/responsable/update/{id}" }, method = { RequestMethod.PUT })
     public ResponseEntity<?> responsableUpdate(@Valid @RequestBody final Responsables request,
-                                         @PathVariable(value = "id") Long id) throws MessagingException {
+                                         @PathVariable(value = "id") Long id,
+                                               @CurrentUser final UserDetailsImpl currentUser) throws MessagingException {
+        if (responsableDao.existsByEmail(request.getEmail(), id)){
+            return  ResponseEntity.badRequest().body(new ApiError(HttpStatus.INTERNAL_SERVER_ERROR, "Error email already exists", "Error duplication key"));
+        }
+        final Accounts account = this.accountDao.selectById(currentUser.getId());
+        List<Organisations> organisations = this.accountOrganisationDao.selectByAccount(account);
         Responsables responsable = this.responsableDao.selectById(id);
         responsable.setLibelle(request.getLibelle());
         responsable.setEmail(request.getEmail());
         responsable.setTelephone(request.getTelephone());
         responsable.setAdresse(request.getAdresse());
+        if (organisations.size()>0)
+            responsable.setOrganisation(organisations.get(0));
         return ResponseEntity.ok(this.responsableDao.save(responsable));
+    }
+
+
+    @RequestMapping(value = { "/responsable/check/email/exist" }, method = { RequestMethod.GET })
+    @ResponseStatus(HttpStatus.OK)
+    public Boolean checkEmail(@RequestParam(name="email") String email) {
+        return this.responsableDao.existsByEmail(email);
+    }
+    @RequestMapping(value = { "/responsable/check/email/exist/{id}" }, method = { RequestMethod.GET })
+    @ResponseStatus(HttpStatus.OK)
+    public Boolean checkEmail(@RequestParam(name="email") String email,
+                              @PathVariable(value = "id") Long id) {
+        return this.responsableDao.existsByEmail(email, id);
     }
     
     @RequestMapping(value = { "/responsable/delete/{id}" }, method = { RequestMethod.DELETE })
@@ -102,7 +134,7 @@ public class ResponsableController {
     public List<Responsables> selectAll(@CurrentUser final UserDetailsImpl currentUser) {
         final Accounts account = this.accountDao.selectById(currentUser.getId());
         List<Long> ids = this.accountOrganisationDao.selectByAccountIds(account);
-        return this.equipeMembreDao.selectByOrganisationRes(ids);
+        return this.responsableDao.seletByOrganisation(ids);
     }
     @RequestMapping(value ="/responsables/page/{page}", method = RequestMethod.GET)
     @ResponseBody
@@ -231,14 +263,14 @@ public class ResponsableController {
     public ResponsePage selectPage(@PathVariable(value = "page") int page,
                                    @CurrentUser final UserDetailsImpl currentUser){
 
-        Pageable pageable = PageRequest.of(page - 1, page_size, sortByCreatedDesc());
+        Pageable pageable = PageRequest.of(page - 1, page_size);
         final Accounts account = this.accountDao.selectById(currentUser.getId());
         List<Long> ids = this.accountOrganisationDao.selectByAccountIds(account);
-        List<Responsables> responsables = this.equipeMembreDao.selectByOrganisationRes(ids, pageable);
+        List<Responsables> responsables = this.responsableDao.seletByOrganisation(ids, pageable);
 
         ResponsePage pages = new ResponsePage();
 
-        Long total = this.equipeMembreDao.countByOrganisationRes(ids);
+        Long total = this.responsableDao.countOrganisation(ids);
         Long lastPage;
 
         if (total > 0){
@@ -294,13 +326,13 @@ public class ResponsableController {
     public ResponsePage searchPage(@RequestParam(name="page") int page,
                                    @RequestParam(name="s") String s,
                                    @CurrentUser final UserDetailsImpl currentUser){
-        Pageable pageable = PageRequest.of(page - 1, page_size, sortByCreatedDesc());
+        Pageable pageable = PageRequest.of(page - 1, page_size);
         final Accounts account = this.accountDao.selectById(currentUser.getId());
         List<Long> ids = this.accountOrganisationDao.selectByAccountIds(account);
-        List<Responsables> responsables = this.equipeMembreDao.rechercheRes(ids, s, pageable);
+        List<Responsables> responsables = this.responsableDao.recherche(ids, s, pageable);
 
         ResponsePage pages = new ResponsePage();
-        Long total = this.equipeMembreDao.countRechercheRes(ids, s);
+        Long total = this.responsableDao.countRecherche(ids, s);
         Long lastPage;
 
         if (total > 0){

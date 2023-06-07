@@ -2,6 +2,7 @@ package com.cyberethik.convocapi.controller;
 
 import com.cyberethik.convocapi.persistance.entities.Accounts;
 import com.cyberethik.convocapi.persistance.entities.Equipes;
+import com.cyberethik.convocapi.persistance.entities.Evenements;
 import com.cyberethik.convocapi.persistance.entities.Responsables;
 import com.cyberethik.convocapi.persistance.service.dao.*;
 import com.cyberethik.convocapi.playload.pages.ResponsePage;
@@ -54,6 +55,10 @@ public class EquipeController {
     private EquipeMembreDao equipeMembreDao;
     @Autowired
     private OrganisationDao organisationDao;
+    @Autowired
+    private EvenementEquipeDao evenementEquipeDao;
+    @Autowired
+    private EvenementDao evenementDao;
     public EquipeController() {
     }
     
@@ -106,6 +111,12 @@ public class EquipeController {
         final Accounts account = this.accountDao.selectById(currentUser.getId());
         List<Long> ids = this.accountOrganisationDao.selectByAccountIds(account);
         return this.equipeDao.seletByOrganisation(ids);
+    }
+    @RequestMapping(value = { "/equipes/evenement/{id}" }, method = { RequestMethod.GET })
+    @ResponseStatus(HttpStatus.OK)
+    public List<Equipes> selectAll(@PathVariable(value = "id") Long id) {
+        final Evenements evenement = this.evenementDao.selectById(id);
+        return this.evenementEquipeDao.selectByEvenement(evenement);
     }
     @RequestMapping(value ="/equipes/page/{page}", method = RequestMethod.GET)
     @ResponseBody
@@ -234,7 +245,7 @@ public class EquipeController {
     public ResponsePage selectPage(@PathVariable(value = "page") int page,
                                    @CurrentUser final UserDetailsImpl currentUser){
 
-        Pageable pageable = PageRequest.of(page - 1, page_size, sortByCreatedDesc());
+        Pageable pageable = PageRequest.of(page - 1, page_size);
         final Accounts account = this.accountDao.selectById(currentUser.getId());
         List<Long> ids = this.accountOrganisationDao.selectByAccountIds(account);
         List<Equipes> equipes = this.equipeDao.seletByOrganisation(ids, pageable);
@@ -297,7 +308,7 @@ public class EquipeController {
     public ResponsePage searchPage(@RequestParam(name="page") int page,
                                    @RequestParam(name="s") String s,
                                    @CurrentUser final UserDetailsImpl currentUser){
-        Pageable pageable = PageRequest.of(page - 1, page_size, sortByCreatedDesc());
+        Pageable pageable = PageRequest.of(page - 1, page_size);
         final Accounts account = this.accountDao.selectById(currentUser.getId());
         List<Long> ids = this.accountOrganisationDao.selectByAccountIds(account);
         List<Equipes> equipes = this.equipeDao.recherche(ids, s, pageable);

@@ -15,5 +15,6 @@ import java.util.List;
 public class ConvocationRequest {
   private Date dateEnvoi;
   private Evenements evenement;
+  private List<Equipes> equipes;
   private List<Membres> membres = new ArrayList<>();
 }

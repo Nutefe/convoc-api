@@ -23,6 +23,8 @@ public class ReponseDto
     private boolean alerte;
     private String description;
     private Convocations convocation;
+    @JsonFormat(pattern="yyyy-MM-dd HH:mm:ss")
     private Date dateEnvoi;
+    @JsonFormat(pattern="yyyy-MM-dd HH:mm:ss")
     private Date createdAt;
 }

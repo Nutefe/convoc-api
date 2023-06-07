@@ -23,6 +23,8 @@ public class EquipeDto
     private String description;
     private Organisations organisation;
     private boolean actif;
+    @JsonFormat(pattern="yyyy-MM-dd HH:mm:ss")
     private Date dateFin;
+    @JsonFormat(pattern="yyyy-MM-dd HH:mm:ss")
     private Date createdAt;
 }

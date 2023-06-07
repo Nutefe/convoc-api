@@ -11,6 +11,8 @@ public interface EquipeMembreDao {
     EquipeMembres selectById(EquipeMembrePK id);
     List<EquipeMembres> selectByEquipe(Membres membre);
     List<Membres> selectByEquipe(Equipes equipe);
+    List<Equipes> selectByMembre(Membres membre);
+    List<Long> selectByMembreIds(Membres membre);
     List<Membres> selectByEquipe(Equipes equipe, Pageable pageable);
     List<Membres> recherche(Equipes equipe, String search, Pageable pageable);
     Long countByEquipe(Equipes equipe);
@@ -27,4 +29,6 @@ public interface EquipeMembreDao {
     Long countRechercheRes(List<Long> orgs, String search);
     void delete(EquipeMembres equipeMembre);
     void delete(List<EquipeMembres> equipeMembres);
+    Long countByOrganisation(Long orgs);
+    List<Membres> selectByEquipes(List<Long> eqp);
 }

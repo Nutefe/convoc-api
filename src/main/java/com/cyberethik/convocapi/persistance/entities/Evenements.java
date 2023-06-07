@@ -47,6 +47,8 @@ public class Evenements implements Serializable
     @Temporal(TemporalType.TIMESTAMP)
     @JsonFormat(pattern="yyyy-MM-dd HH:mm:ss")
     private Date dateFin;
+    @Column(name = "envoyer", columnDefinition="tinyint(1) default 0")
+    private boolean envoyer;
     @Column(name = "deleted", columnDefinition="tinyint(1) default 0")
     private boolean deleted;
     @Version
