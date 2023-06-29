@@ -11,6 +11,8 @@ import com.cyberethik.convocapi.persistance.service.dao.*;
 import com.cyberethik.convocapi.playload.helper.Helpers;
 import com.cyberethik.convocapi.playload.request.LoginRequest;
 import com.cyberethik.convocapi.playload.request.ReponseRequest;
+import com.cyberethik.convocapi.playload.request.ResetPassRequest;
+import com.cyberethik.convocapi.playload.request.UpdatePassRequest;
 import com.cyberethik.convocapi.playload.response.ApiMessage;
 import com.cyberethik.convocapi.playload.response.JwtResponse;
 import com.cyberethik.convocapi.playload.response.TokenRefreshResponse;
@@ -61,6 +63,8 @@ public class AuthController {
   @Autowired
   private ReponseDao reponseDao;
   private final EmailSenderService emailSenderService;
+  @Autowired
+  private PasswordEncoder passwordEncoder;
   public AuthController(EmailSenderService emailSenderService) {
     this.emailSenderService = emailSenderService;
   }
@@ -115,7 +119,7 @@ public class AuthController {
       emailInit.setTemplate("email-forgot-password.html");
       Map<String, Object> properties = new HashMap<>();
       properties.put("name", accounts.getLibelle());
-      properties.put("link", Helpers.base_client_url+"reset/password/"+accounts.getSlug());
+      properties.put("link", Helpers.base_client_url+"#/update-password/"+accounts.getSlug());
       emailInit.setProperties(properties);
       emailSenderService.sendHtmlMessage(emailInit);
     }
@@ -147,6 +151,14 @@ public class AuthController {
     reponse.setDateEnvoi(new Date());
     reponse.setConvocation(this.convocationDao.selectBySlug(request.getSlug()));
     return ResponseEntity.ok(this.reponseDao.save(reponse));
+  }
+
+  @RequestMapping(value = { "/auth/password/update" }, method = { RequestMethod.PUT })
+  public ResponseEntity<?> accountUpdate(@Valid @RequestBody final ResetPassRequest request,
+                                         @RequestParam(name="slug") String slug) {
+    Accounts account = this.accountDao.selectBySlug(slug);
+    this.accountDao.updatePassword(account.getId(), request.getNouveau());
+    return ResponseEntity.ok(new ApiMessage(HttpStatus.OK, "Mot de passe modifier avec succès"));
   }
 
 //  @RequestMapping(value = { "/auth/candidat/signin/up" }, method = { RequestMethod.POST })
