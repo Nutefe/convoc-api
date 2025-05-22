@@ -8,7 +8,8 @@ import java.text.DateFormat;
 import java.text.Normalizer;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.LocalDate;
+import java.time.*;
+import java.time.temporal.TemporalAdjusters;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
@@ -20,17 +21,17 @@ import static java.time.temporal.TemporalAdjusters.*;
 
 public class Helpers
 {
-    public static String path_file_docs = "/home/upload/enacp/docs/";
-    public static String path_file_exports = "/home/upload/enacp/exports/";
+    public static String path_file_docs = "/home/upload/convoc/docs/";
+    public static String path_file_exports = "/home/upload/convoc/exports/";
     public static String path_file_logos = "/home/upload/convoc/logo/";
-    public static String path_file_resources = "/home/upload/enacp/resources/";
+    public static String path_file_resources = "/home/upload/convoc/resources/";
     public static String base_file_url = "https://enacp2k23.enacp.com/enacp-rest-api/web/service/";
 
 //    public static String base_file_url = "http://localhost:9197/web/service/";
 //    public static String base_file_url = "http://localhost:8080/enacp-rest-api/web/service/";
 //    public static String base_client_url = "http://localhost:5173/";
 //    public static String base_client_url = "http://192.168.1.70:8080/";
-    public static String base_client_url = "http://convoc.cyberethik.fr/";
+    public static String base_client_url = "https://convoc.cyberethik.fr/#/";
     private static final Pattern NONLATIN = Pattern.compile("[^\\w-]");
     private static final Pattern WHITESPACE = Pattern.compile("[\\s]");
 
@@ -125,6 +126,12 @@ public class Helpers
         String heurejour = heure.format(dateInit);
         return heurejour;
     }
+    public static String convertHeure1(Date dateInit){
+        DateFormat date = DateFormat.getDateTimeInstance(DateFormat.FULL, DateFormat.FULL, new Locale("FR","fr"));
+        SimpleDateFormat heure = new SimpleDateFormat("HH:mm");
+        String heurejour = heure.format(dateInit);
+        return heurejour;
+    }
 
     public static String convertAllDate(Date dateInit){
         System.out.println(dateInit);
@@ -204,6 +211,24 @@ public class Helpers
 ////        Date d = new SimpleDateFormat("yyyy-MM-dd").parse(lastDay.toString());
 //        return d;
         return lastDay;
+    }
+
+    public static Date startOfWeek() {
+        LocalDateTime localDateTime =  LocalDateTime.now()
+                .with(LocalTime.MIN)
+                .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+
+        Date date = Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
+        return date;
+    }
+
+    //note that week ends with Sunday
+    public static Date endOfWeek() {
+        LocalDateTime localDateTime = LocalDateTime.now()
+                .with(LocalTime.MAX)
+                .with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
+        Date date = Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
+        return date;
     }
 
     public static  Date getDayDate() {

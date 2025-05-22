@@ -1,6 +1,7 @@
 package com.cyberethik.convocapi.persistance.dto;
 
 import com.cyberethik.convocapi.persistance.entities.Equipes;
+import com.cyberethik.convocapi.persistance.entities.Membres;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 import org.springframework.data.annotation.CreatedDate;
@@ -21,6 +22,7 @@ public class EvenementDto
     private Long id;
     private String libelle;
     private String description;
+    private Membres coordinateur;
     private List<Equipes> equipes = new ArrayList<>();
     @JsonFormat(pattern="yyyy-MM-dd HH:mm:ss")
     private Date dateDebut;

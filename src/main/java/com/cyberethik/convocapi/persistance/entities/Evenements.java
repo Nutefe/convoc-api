@@ -39,6 +39,9 @@ public class Evenements implements Serializable
     private String libelle;
     @Column(name = "description")
     private String description;
+    @JoinColumn(name = "coordinateur", referencedColumnName = "id")
+    @ManyToOne(fetch = FetchType.EAGER)
+    private Membres coordinateur;
     @Column(name = "dateDebut")
     @Temporal(TemporalType.TIMESTAMP)
     @JsonFormat(pattern="yyyy-MM-dd HH:mm:ss")
@@ -47,6 +50,9 @@ public class Evenements implements Serializable
     @Temporal(TemporalType.TIMESTAMP)
     @JsonFormat(pattern="yyyy-MM-dd HH:mm:ss")
     private Date dateFin;
+    @JoinColumn(name = "organisation", referencedColumnName = "id")
+    @ManyToOne(fetch = FetchType.EAGER)
+    private Organisations organisation;
     @Column(name = "envoyer", columnDefinition="tinyint(1) default 0")
     private boolean envoyer;
     @Column(name = "deleted", columnDefinition="tinyint(1) default 0")

@@ -1,5 +1,6 @@
 package com.cyberethik.convocapi.controller;
 
+import com.cyberethik.convocapi.exception.ApiError;
 import com.cyberethik.convocapi.messaging.emails.model.Email;
 import com.cyberethik.convocapi.messaging.emails.service.EmailSenderService;
 import com.cyberethik.convocapi.persistance.entities.*;
@@ -9,6 +10,7 @@ import com.cyberethik.convocapi.playload.pages.ResponsePage;
 import com.cyberethik.convocapi.playload.request.ConvocationRequest;
 import com.cyberethik.convocapi.playload.request.LongRequest;
 import com.cyberethik.convocapi.playload.request.ReponseRequest;
+import com.cyberethik.convocapi.playload.response.ApiMessage;
 import com.cyberethik.convocapi.security.services.CurrentUser;
 import com.cyberethik.convocapi.security.services.UserDetailsImpl;
 import org.modelmapper.ModelMapper;
@@ -78,12 +80,21 @@ public class ReponseController {
 
     @RequestMapping(value = { "/reponse/save" }, method = { RequestMethod.POST })
     public ResponseEntity<?> reponseSave(@Valid @RequestBody final ReponseRequest request) throws MessagingException {
+        Convocations convocation = this.convocationDao.selectBySlug(request.getSlug());
+        if (convocation == null){
+            return  ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiError(HttpStatus.BAD_REQUEST, "Cette convocation n'existe pas", "Access denied"));
+        }
+        Reponses reponseInit = this.reponseDao.findTop1(convocation);
+        if (reponseInit!=null){
+            return  ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiError(HttpStatus.BAD_REQUEST, "Vous avez déjà répondu à cette convocation", "Access denied"));
+        }
+
         Reponses reponse = new Reponses();
         reponse.setChoix(request.getChoix());
         reponse.setDescription(request.getDescription());
         reponse.setAlerte(request.isAlerte());
         reponse.setDateEnvoi(new Date());
-        reponse.setConvocation(this.convocationDao.selectBySlug(request.getSlug()));
+        reponse.setConvocation(convocation);
         return ResponseEntity.ok(this.reponseDao.save(reponse));
     }
     @RequestMapping(value = { "/reponse/update/{id}" }, method = { RequestMethod.PUT })
@@ -113,6 +124,12 @@ public class ReponseController {
                 this.reponseDao.delete(reponse);
             }
         }
+    }
+    @RequestMapping(value = { "/reponses/evenement/{id}" }, method = { RequestMethod.GET })
+    @ResponseStatus(HttpStatus.OK)
+    public List<Reponses> selectAll(@PathVariable(value = "id") Long id) {
+        Evenements evenement = this.evenementDao.selectById(id);
+        return this.reponseDao.selectByEvenement(evenement);
     }
     @RequestMapping(value = { "/reponses" }, method = { RequestMethod.GET })
     @ResponseStatus(HttpStatus.OK)
@@ -498,4 +515,12 @@ public class ReponseController {
         return pages;
     }
 
+    @RequestMapping(value = { "/status/reponse/encours" }, method = { RequestMethod.GET })
+    @ResponseStatus(HttpStatus.OK)
+    public ResponseEntity<?> countMonth(@CurrentUser final UserDetailsImpl currentUser) {
+        final Accounts account = this.accountDao.selectById(currentUser.getId());
+        List<Organisations> organisations = this.accountOrganisationDao.selectByAccount(account);
+        Organisations organisationInit = organisations.get(0);
+        return ResponseEntity.ok(this.reponseDao.countReponse(organisationInit.getId(), new Date()));
+    }
 }

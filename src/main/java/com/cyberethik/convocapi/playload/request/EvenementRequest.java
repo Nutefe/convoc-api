@@ -1,6 +1,7 @@
 package com.cyberethik.convocapi.playload.request;
 
 import com.cyberethik.convocapi.persistance.entities.Equipes;
+import com.cyberethik.convocapi.persistance.entities.Membres;
 import com.cyberethik.convocapi.persistance.entities.Organisations;
 import com.cyberethik.convocapi.persistance.entities.Roles;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -22,7 +23,10 @@ import java.util.List;
 public class EvenementRequest {
   private String libelle;
   private String description;
+  private Membres coordinateur;
+  @JsonFormat(pattern="yyyy-MM-dd HH:mm:ss")
   private Date dateDebut;
+  @JsonFormat(pattern="yyyy-MM-dd HH:mm:ss")
   private Date dateFin;
   private List<Equipes> equipes = new ArrayList<>();
 }

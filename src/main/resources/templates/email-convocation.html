@@ -349,8 +349,8 @@
                             <table role="presentation" border="0" cellpadding="0" cellspacing="0">
                                 <tr>
                                     <td>
-                                        <p>Bonjour <span th:text="${name}",</p>
-                                        <p>Vous êtes convoqué à un evenement .</p>
+                                        <p>Bonjour <span th:text="${name}"/>,</p>
+                                        <p><span th:if="${name == membre}">Vous êtes</span> <span th:unless="${name == membre}"><span th:text="${membre}"/> est</span> convoqué du <span th:text="${dateDebut}"/> à <span th:text="${heureDebut}"/> au <span th:text="${dateFin}"/> à <span th:text="${heureFin}"/> pour l'évènement <span th:text="${evenement}"/> .</p>
                                         <table role="presentation" border="0" cellpadding="0" cellspacing="0" class="btn btn-primary">
                                             <tbody>
                                             <tr>

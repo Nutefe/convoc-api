@@ -37,7 +37,7 @@ public interface EvenementEquipeRepository extends JpaRepository<EvenementEquipe
             "(x.deleted = false AND x.id.equipe=:equipe)")
     Long countRecherche(Equipes equipe, String search);
 
-    @Query("SELECT DISTINCT x.id.evenement FROM EvenementEquipes x WHERE x.deleted = false AND x.id.equipe.organisation.id IN :orgs")
+    @Query("SELECT x.id.evenement FROM EvenementEquipes x WHERE x.deleted = false AND x.id.equipe.organisation.id IN :orgs")
     List<Evenements> selectByOrganisation(List<Long> orgs);
     @Query("SELECT DISTINCT x.id.evenement.id FROM EvenementEquipes x WHERE x.deleted = false AND x.id.equipe.organisation.id IN :orgs")
     List<Long> selectByOrganisationIds(List<Long> orgs);

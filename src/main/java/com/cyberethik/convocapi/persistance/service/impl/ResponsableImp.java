@@ -22,6 +22,11 @@ public class ResponsableImp implements ResponsableDao {
     }
 
     @Override
+    public Responsables selectByEmail(String email) {
+        return repository.selectByEmail(email);
+    }
+
+    @Override
     public Responsables save(Responsables responsable) {
         return repository.save(responsable);
     }

@@ -1,5 +1,6 @@
 package com.cyberethik.convocapi.controller;
 
+import com.cyberethik.convocapi.exception.ApiError;
 import com.cyberethik.convocapi.messaging.emails.model.Email;
 import com.cyberethik.convocapi.messaging.emails.service.EmailSenderService;
 import com.cyberethik.convocapi.persistance.entities.*;
@@ -9,6 +10,7 @@ import com.cyberethik.convocapi.playload.pages.ResponsePage;
 import com.cyberethik.convocapi.playload.request.ConvocationRequest;
 import com.cyberethik.convocapi.playload.request.EvenementRequest;
 import com.cyberethik.convocapi.playload.request.LongRequest;
+import com.cyberethik.convocapi.playload.response.ApiMessage;
 import com.cyberethik.convocapi.security.services.CurrentUser;
 import com.cyberethik.convocapi.security.services.UserDetailsImpl;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -77,8 +79,30 @@ public class ConvocationController {
     }
     
     @RequestMapping(value = { "/convocation/save" }, method = { RequestMethod.POST })
-    public void convocationSave(@Valid @RequestBody final ConvocationRequest request) throws MessagingException {
+    public ResponseEntity<?> convocationSave(@Valid @RequestBody final ConvocationRequest request) throws MessagingException {
         Evenements evenement = this.evenementDao.selectById(request.getEvenement().getId());
+        if (evenement.isEnvoyer()){
+            return  ResponseEntity.status(HttpStatus.LENGTH_REQUIRED).body(new ApiError(HttpStatus.LENGTH_REQUIRED, "Cette convocation a déjà été envoyé", "Access denied"));
+        }
+        List<Evenements> evenements = this.convocationDao.selectConvocations(evenement.getOrganisation().getId(), Helpers.startOfWeek(), Helpers.endOfWeek());
+        if (evenements.size() > 0){
+            for (Evenements event :
+                    evenements) {
+                List<Equipes> equipes = this.evenementEquipeDao.selectByEvenement(event);
+                for (Equipes equ :
+                        equipes) {
+                    List<Equipes> equipeSearch = this.evenementEquipeDao.selectByEvenement(evenement);
+                    if (equipeSearch.contains(equ)){
+                        return  ResponseEntity.status(HttpStatus.LENGTH_REQUIRED).body(new ApiError(HttpStatus.LENGTH_REQUIRED, "Cette équipe a déjà envoyé une convocation cette semaine", "Access denied"));
+                    }
+                }
+            }
+        }
+        if (evenement.getOrganisation().getConvocMax() ==
+        this.convocationDao.countConvocations(evenement.getOrganisation().getId(), Helpers.startOfWeek(), Helpers.endOfWeek())){
+            return  ResponseEntity.status(HttpStatus.LENGTH_REQUIRED).body(new ApiError(HttpStatus.LENGTH_REQUIRED, "Nombre convocation atteint pour l'organisation", "Access denied"));
+        }
+
         if (request.getMembres().size() > 0){
             for (Membres mem :
                     request.getMembres()) {
@@ -98,30 +122,83 @@ public class ConvocationController {
                 convocation.setMembre(membre);
                 convocation.setSlug(slug);
                 Convocations convocationSave=this.convocationDao.save(convocation);
+
                 
                 if (convocationSave!=null && membre != null){
-                    Email emailInit = new Email();
-                    emailInit.setTo(membre.getResponsable().getEmail());
-                    emailInit.setFrom(sender);
-                    emailInit.setSubject("Convocation a un evenement");
-                    emailInit.setTemplate("email-convocation.html");
-                    Map<String, Object> properties = new HashMap<>();
-                    properties.put("name", membre.getResponsable().getLibelle());
-                    properties.put("link", Helpers.base_client_url+"reponse/convoc/"+convocationSave.getSlug());
-                    emailInit.setProperties(properties);
-                    emailSenderService.sendHtmlMessage(emailInit);
-                    convocationSave.setEnvoyer(true);
-                    this.convocationDao.save(convocationSave);
+                    if (membre.isHasResponsable()){
+                        Email emailInit = new Email();
+                        emailInit.setTo(membre.getEmail());
+                        emailInit.setFrom(sender);
+                        emailInit.setSubject("Convocation à un évènement");
+                        emailInit.setTemplate("email-convocation.html");
+                        Map<String, Object> properties = new HashMap<>();
+                        properties.put("name", membre.getLibelle());
+                        properties.put("membre", membre.getLibelle());
+                        properties.put("dateDebut", Helpers.convertDate(evenement.getDateDebut()));
+                        properties.put("heureDebut", Helpers.convertHeure1(evenement.getDateDebut()).replace(":", "h"));
+                        properties.put("dateFin", Helpers.convertDate(evenement.getDateFin()));
+                        properties.put("heureFin", Helpers.convertHeure1(evenement.getDateFin()).replace(":", "h"));
+                        properties.put("evenement", evenement.getLibelle());
+                        properties.put("link", Helpers.base_client_url+"pages/reponse/convoc/"+convocationSave.getSlug());
+                        emailInit.setProperties(properties);
+                        emailSenderService.sendHtmlMessage(emailInit);
+                        convocationSave.setEnvoyer(true);
+                        this.convocationDao.save(convocationSave);
+                    }
+                    else {
+                        Email emailInit = new Email();
+                        emailInit.setTo(membre.getResponsable().getEmail());
+                        emailInit.setFrom(sender);
+                        emailInit.setSubject("Convocation à un évènement");
+                        emailInit.setTemplate("email-convocation.html");
+                        Map<String, Object> properties = new HashMap<>();
+                        properties.put("name", membre.getResponsable().getLibelle());
+                        properties.put("membre", membre.getLibelle());
+                        properties.put("dateDebut", Helpers.convertDate(evenement.getDateDebut()));
+                        properties.put("heureDebut", Helpers.convertHeure1(evenement.getDateDebut()).replace(":", "h"));
+                        properties.put("dateFin", Helpers.convertDate(evenement.getDateFin()));
+                        properties.put("heureFin", Helpers.convertHeure1(evenement.getDateFin()).replace(":", "h"));
+                        properties.put("evenement", evenement.getLibelle());
+                        properties.put("link", Helpers.base_client_url+"pages/reponse/convoc/"+convocationSave.getSlug());
+                        emailInit.setProperties(properties);
+                        emailSenderService.sendHtmlMessage(emailInit);
+                        convocationSave.setEnvoyer(true);
+                        this.convocationDao.save(convocationSave);
+                    }
                 }
             }
             evenement.setEnvoyer(true);
             this.evenementDao.save(evenement);
         }
+
+        return ResponseEntity.ok(new ApiMessage(HttpStatus.OK, "Convocation envoye avec succes"));
     }
 
     @RequestMapping(value = { "/convocation/equipe/save" }, method = { RequestMethod.POST })
-    public void convocationEquipeSave(@Valid @RequestBody final ConvocationRequest request) throws MessagingException {
+    public ResponseEntity<?> convocationEquipeSave(@Valid @RequestBody final ConvocationRequest request) throws MessagingException {
         Evenements evenement = this.evenementDao.selectById(request.getEvenement().getId());
+        if (evenement.isEnvoyer()){
+            return  ResponseEntity.status(HttpStatus.LENGTH_REQUIRED).body(new ApiError(HttpStatus.LENGTH_REQUIRED, "Cette convocation a déjà été envoyé", "Access denied"));
+        }
+        List<Evenements> evenements = this.convocationDao.selectConvocations(evenement.getOrganisation().getId(), Helpers.startOfWeek(), Helpers.endOfWeek());
+        if (evenements.size() > 0){
+            for (Evenements event :
+                    evenements) {
+                List<Equipes> equipes = this.evenementEquipeDao.selectByEvenement(event);
+                for (Equipes equ :
+                        equipes) {
+                    List<Equipes> equipeSearch = this.evenementEquipeDao.selectByEvenement(evenement);
+                    if (equipeSearch.contains(equ)){
+                        return  ResponseEntity.status(HttpStatus.LENGTH_REQUIRED).body(new ApiError(HttpStatus.LENGTH_REQUIRED, "Cette équipe a déjà envoyé une convocation cette semaine", "Access denied"));
+                    }
+                }
+            }
+        }
+        if (evenement.getOrganisation().getConvocMax() ==
+                this.convocationDao.countConvocations(evenement.getOrganisation().getId(), Helpers.startOfWeek(), Helpers.endOfWeek())){
+            return  ResponseEntity.status(HttpStatus.LENGTH_REQUIRED).body(new ApiError(HttpStatus.LENGTH_REQUIRED, "Nombre de convocation atteint pour l'équipe", "Access denied"));
+        }
+
         List<Membres> membres = new ArrayList<>();
         for (Equipes equipe :
                 request.getEquipes()) {
@@ -151,25 +228,164 @@ public class ConvocationController {
                 Convocations convocationSave=this.convocationDao.save(convocation);
 
                 if (convocationSave!=null){
-                    Email emailInit = new Email();
-                    emailInit.setTo(membre.getResponsable().getEmail());
-                    emailInit.setFrom(sender);
-                    emailInit.setSubject("Convocation a un evenement");
-                    emailInit.setTemplate("email-convocation.html");
-                    Map<String, Object> properties = new HashMap<>();
-                    properties.put("name", membre.getResponsable().getLibelle());
-                    properties.put("link", Helpers.base_client_url+"reponse/convoc/"+convocationSave.getSlug());
-                    emailInit.setProperties(properties);
-                    emailSenderService.sendHtmlMessage(emailInit);
-                    convocationSave.setEnvoyer(true);
-                    this.convocationDao.save(convocationSave);
+                    if (membre.isHasResponsable()){
+                        Email emailInit = new Email();
+                        emailInit.setTo(membre.getEmail());
+                        emailInit.setFrom(sender);
+                        emailInit.setSubject("Convocation à un évènement");
+                        emailInit.setTemplate("email-convocation.html");
+                        Map<String, Object> properties = new HashMap<>();
+                        properties.put("name", membre.getLibelle());
+                        properties.put("membre", membre.getLibelle());
+                        properties.put("dateDebut", Helpers.convertDate(evenement.getDateDebut()));
+                        properties.put("heureDebut", Helpers.convertHeure1(evenement.getDateDebut()).replace(":", "h"));
+                        properties.put("dateFin", Helpers.convertDate(evenement.getDateFin()));
+                        properties.put("heureFin", Helpers.convertHeure1(evenement.getDateFin()).replace(":", "h"));
+                        properties.put("evenement", evenement.getLibelle());
+                        properties.put("link", Helpers.base_client_url+"pages/reponse/convoc/"+convocationSave.getSlug());
+                        emailInit.setProperties(properties);
+                        emailSenderService.sendHtmlMessage(emailInit);
+                        convocationSave.setEnvoyer(true);
+                        this.convocationDao.save(convocationSave);
+                    }
+                    else {
+                        Email emailInit = new Email();
+                        emailInit.setTo(membre.getResponsable().getEmail());
+                        emailInit.setFrom(sender);
+                        emailInit.setSubject("Convocation à un évènement");
+                        emailInit.setTemplate("email-convocation.html");
+                        Map<String, Object> properties = new HashMap<>();
+                        properties.put("name", membre.getResponsable().getLibelle());
+                        properties.put("membre", membre.getLibelle());
+                        properties.put("dateDebut", Helpers.convertDate(evenement.getDateDebut()));
+                        properties.put("heureDebut", Helpers.convertHeure1(evenement.getDateDebut()).replace(":", "h"));
+                        properties.put("dateFin", Helpers.convertDate(evenement.getDateFin()));
+                        properties.put("heureFin", Helpers.convertHeure1(evenement.getDateFin()).replace(":", "h"));
+                        properties.put("evenement", evenement.getLibelle());
+                        properties.put("link", Helpers.base_client_url+"pages/reponse/convoc/"+convocationSave.getSlug());
+                        emailInit.setProperties(properties);
+                        emailSenderService.sendHtmlMessage(emailInit);
+                        convocationSave.setEnvoyer(true);
+                        this.convocationDao.save(convocationSave);
+                    }
                 }
             }
             evenement.setEnvoyer(true);
             this.evenementDao.save(evenement);
         }
+        return ResponseEntity.ok(new ApiMessage(HttpStatus.OK, "Convocation envoye avec succes"));
+    }
+    @RequestMapping(value = { "/convocation/event/equipe/send/{id}" }, method = { RequestMethod.GET })
+    public ResponseEntity<?> convocationEventEquipeSave(@PathVariable(value = "id") Long id) throws MessagingException {
+        Evenements evenement = this.evenementDao.selectById(id);
+        if (evenement.isEnvoyer()){
+            return  ResponseEntity.status(HttpStatus.LENGTH_REQUIRED).body(new ApiError(HttpStatus.LENGTH_REQUIRED, "Cette convocation a déjà été envoyé", "Access denied"));
+        }
+
+        List<Evenements> evenements = this.convocationDao.selectConvocations(evenement.getOrganisation().getId(), Helpers.startOfWeek(), Helpers.endOfWeek());
+        if (evenements.size() > 0){
+            for (Evenements event :
+                    evenements) {
+                List<Equipes> equipes = this.evenementEquipeDao.selectByEvenement(event);
+                for (Equipes equ :
+                        equipes) {
+                    List<Equipes> equipeSearch = this.evenementEquipeDao.selectByEvenement(evenement);
+                    if (equipeSearch.contains(equ)){
+                        return  ResponseEntity.status(HttpStatus.LENGTH_REQUIRED).body(new ApiError(HttpStatus.LENGTH_REQUIRED, "Cette équipe a déjà envoyé une convocation cette semaine", "Access denied"));
+                    }
+                }
+            }
+        }
+
+        if (evenement.getOrganisation().getConvocMax() ==
+                this.convocationDao.countConvocations(evenement.getOrganisation().getId(), Helpers.startOfWeek(), Helpers.endOfWeek())){
+            return  ResponseEntity.status(HttpStatus.LENGTH_REQUIRED).body(new ApiError(HttpStatus.LENGTH_REQUIRED, "Nombre d'membres actifs atteint pour l'équipe", "Access denied"));
+        }
+
+        List<Equipes> equipes = this.evenementEquipeDao.selectByEvenement(evenement);
+
+        List<Membres> membres = new ArrayList<>();
+        for (Equipes equipe :
+                equipes) {
+            Equipes equipeIn = this.equipeDao.selectById(equipe.getId());
+            List<Membres> memb = this.equipeMembreDao.membreByEquipe(equipeIn, new Date());
+            membres.addAll(memb);
+        }
+        List<Membres> membresList = membres.stream().distinct().collect(Collectors.toList());
+        if (membresList.size() > 0){
+            for (Membres mem :
+                    membresList) {
+
+                String slug;
+                do {
+                    int length = 10;
+                    boolean useLetters = true;
+                    boolean useNumbers = true;
+                    slug = RandomStringUtils.random(length, useLetters, useNumbers);
+                }while (this.convocationDao.existsBySlug(slug));
+
+                Membres membre = this.membreDao.selectById(mem.getId());
+                Convocations convocation = new Convocations();
+                convocation.setEvenement(evenement);
+                convocation.setDateEnvoi(new Date());
+                convocation.setMembre(membre);
+                convocation.setSlug(slug);
+                Convocations convocationSave=this.convocationDao.save(convocation);
+
+                if (convocationSave!=null){
+                    if (membre.isHasResponsable()){
+                        Email emailInit = new Email();
+                        emailInit.setTo(membre.getEmail());
+                        emailInit.setFrom(sender);
+                        emailInit.setSubject("Convocation à un évènement");
+                        emailInit.setTemplate("email-convocation.html");
+                        Map<String, Object> properties = new HashMap<>();
+                        properties.put("name", membre.getLibelle());
+                        properties.put("membre", membre.getLibelle());
+                        properties.put("dateDebut", Helpers.convertDate(evenement.getDateDebut()));
+                        properties.put("heureDebut", Helpers.convertHeure1(evenement.getDateDebut()).replace(":", "h"));
+                        properties.put("dateFin", Helpers.convertDate(evenement.getDateFin()));
+                        properties.put("heureFin", Helpers.convertHeure1(evenement.getDateFin()).replace(":", "h"));
+                        properties.put("evenement", evenement.getLibelle());
+                        properties.put("link", Helpers.base_client_url+"pages/reponse/convoc/"+convocationSave.getSlug());
+                        emailInit.setProperties(properties);
+                        emailSenderService.sendHtmlMessage(emailInit);
+                        convocationSave.setEnvoyer(true);
+                        this.convocationDao.save(convocationSave);
+                    }
+                    else {
+                        Email emailInit = new Email();
+                        emailInit.setTo(membre.getResponsable().getEmail());
+                        emailInit.setFrom(sender);
+                        emailInit.setSubject("Convocation à un évènement");
+                        emailInit.setTemplate("email-convocation.html");
+                        Map<String, Object> properties = new HashMap<>();
+                        properties.put("name", membre.getResponsable().getLibelle());
+                        properties.put("membre", membre.getLibelle());
+                        properties.put("dateDebut", Helpers.convertDate(evenement.getDateDebut()));
+                        properties.put("heureDebut", Helpers.convertHeure1(evenement.getDateDebut()).replace(":", "h"));
+                        properties.put("dateFin", Helpers.convertDate(evenement.getDateFin()));
+                        properties.put("heureFin", Helpers.convertHeure1(evenement.getDateFin()).replace(":", "h"));
+                        properties.put("evenement", evenement.getLibelle());
+                        properties.put("link", Helpers.base_client_url+"pages/reponse/convoc/"+convocationSave.getSlug());
+                        emailInit.setProperties(properties);
+                        emailSenderService.sendHtmlMessage(emailInit);
+                        convocationSave.setEnvoyer(true);
+                        this.convocationDao.save(convocationSave);
+                    }
+                }
+            }
+            evenement.setEnvoyer(true);
+            this.evenementDao.save(evenement);
+        }
+        return ResponseEntity.ok(new ApiMessage(HttpStatus.OK, "Convocation envoye avec succes"));
     }
 
+    @RequestMapping(value = { "/convocation/slug/{slug}" }, method = { RequestMethod.GET })
+    public ResponseEntity<?> convocationUpdate(@PathVariable(value = "slug") String slug) throws MessagingException {
+        final Convocations convocation = this.convocationDao.selectBySlug(slug);
+        return ResponseEntity.ok(convocation);
+    }
     @RequestMapping(value = { "/convocation/delete/{id}" }, method = { RequestMethod.DELETE })
     public void convocationUpdate(@PathVariable(value = "id") Long id) throws MessagingException {
         final Convocations convocation = this.convocationDao.selectById(id);

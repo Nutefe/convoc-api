@@ -1,13 +1,17 @@
 package com.cyberethik.convocapi.controller;
 
-import com.cyberethik.convocapi.persistance.entities.Accounts;
-import com.cyberethik.convocapi.persistance.entities.Equipes;
-import com.cyberethik.convocapi.persistance.entities.Evenements;
-import com.cyberethik.convocapi.persistance.entities.Responsables;
+import com.cyberethik.convocapi.exception.ApiError;
+import com.cyberethik.convocapi.persistance.dto.MembreDto;
+import com.cyberethik.convocapi.persistance.entities.*;
 import com.cyberethik.convocapi.persistance.service.dao.*;
+import com.cyberethik.convocapi.persistance.utils.UtilMembre;
+import com.cyberethik.convocapi.playload.helper.Helpers;
 import com.cyberethik.convocapi.playload.pages.ResponsePage;
 import com.cyberethik.convocapi.playload.request.EquipeRequest;
+import com.cyberethik.convocapi.playload.request.FilterRequest;
 import com.cyberethik.convocapi.playload.request.LongRequest;
+import com.cyberethik.convocapi.playload.request.MembreRequest;
+import com.cyberethik.convocapi.playload.response.ApiMessage;
 import com.cyberethik.convocapi.security.services.CurrentUser;
 import com.cyberethik.convocapi.security.services.UserDetailsImpl;
 import org.modelmapper.ModelMapper;
@@ -22,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.mail.MessagingException;
 import javax.validation.Valid;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import static com.cyberethik.convocapi.playload.helper.Helpers.sortByCreatedDesc;
@@ -59,29 +64,122 @@ public class EquipeController {
     private EvenementEquipeDao evenementEquipeDao;
     @Autowired
     private EvenementDao evenementDao;
+    @Autowired
+    private MembreDao membreDao;
     public EquipeController() {
     }
     
     @RequestMapping(value = { "/equipe/save" }, method = { RequestMethod.POST })
-    public ResponseEntity<?> equipeSave(@Valid @RequestBody final EquipeRequest request) throws MessagingException {
+    public ResponseEntity<?> equipeSave(@Valid @RequestBody final EquipeRequest request,
+                                        @CurrentUser final UserDetailsImpl currentUser) throws MessagingException {
+        final Accounts account = this.accountDao.selectById(currentUser.getId());
+        List<Organisations> organisations = this.accountOrganisationDao.selectByAccount(account);
+
+        Organisations organisationInit = this.organisationDao.selectById(organisations.get(0).getId());
+        if (organisationInit != null){
+            if (organisationInit.getEquipeMax() == this.equipeDao.countByOrganisation(organisationInit.getId())){
+                return  ResponseEntity.status(HttpStatus.LENGTH_REQUIRED).body(new ApiError(HttpStatus.LENGTH_REQUIRED, "Nombre d'équipe atteint", "Access denied"));
+            }
+        }
+
         Equipes equipe = new Equipes();
         equipe.setLibelle(request.getLibelle());
         equipe.setDescription(request.getDescription());
         equipe.setDateFin(request.getDateFin());
         equipe.setActif(true);
-        equipe.setOrganisation(this.organisationDao.selectById(request.getOrganisation().getId()));
-        return ResponseEntity.ok(this.equipeDao.save(equipe));
+        equipe.setOrganisation(organisationInit);
+        Equipes equipeSave = this.equipeDao.save(equipe);
+        if (equipeSave!=null){
+            if (request.getMembres() != null){
+                if (request.getMembres().size()>0){
+                    for (Membres eq :
+                            request.getMembres()) {
+                        Membres membre = this.membreDao.selectById(eq.getId());
+                        if (Helpers.compareDate(membre.getDateFin(), new Date())){
+                            if (equipe.getOrganisation().getMembreEquActifs() == this.equipeMembreDao.countByEquipe(equipe, new Date())){
+                                return  ResponseEntity.status(HttpStatus.LENGTH_REQUIRED).body(new ApiError(HttpStatus.LENGTH_REQUIRED, "Nombre d'membres actifs atteint pour l'équipe", "Access denied"));
+                            }
+                        }
+
+                        EquipeMembres equipeMembre = new EquipeMembres();
+                        EquipeMembrePK pk = new EquipeMembrePK(equipe, membre);
+                        equipeMembre.setId(pk);
+                        this.equipeMembreDao.save(equipeMembre);
+                    }
+                }
+            }
+
+        }
+
+        return ResponseEntity.ok(equipeSave);
     }
     @RequestMapping(value = { "/equipe/update/{id}" }, method = { RequestMethod.PUT })
     public ResponseEntity<?> equipeUpdate(@Valid @RequestBody final EquipeRequest request,
-                                         @PathVariable(value = "id") Long id) throws MessagingException {
+                                         @PathVariable(value = "id") Long id,
+                                          @CurrentUser final UserDetailsImpl currentUser) throws MessagingException {
+
+        final Accounts account = this.accountDao.selectById(currentUser.getId());
+        List<Organisations> organisations = this.accountOrganisationDao.selectByAccount(account);
+
+        Organisations organisationInit = this.organisationDao.selectById(organisations.get(0).getId());
+
         Equipes equipe = this.equipeDao.selectById(id);
         equipe.setLibelle(request.getLibelle());
         equipe.setDescription(request.getDescription());
         equipe.setDateFin(request.getDateFin());
         equipe.setActif(true);
-        equipe.setOrganisation(this.organisationDao.selectById(request.getOrganisation().getId()));
-        return ResponseEntity.ok(this.equipeDao.save(equipe));
+        equipe.setOrganisation(organisationInit);
+        Equipes equipeSave = this.equipeDao.save(equipe);
+        if (equipeSave!=null){
+            if (request.getMembres() != null){
+                if (request.getMembres().size()>0){
+                    for (Membres eq :
+                            request.getMembres()) {
+                        Membres membre = this.membreDao.selectById(eq.getId());
+                        if (Helpers.compareDate(membre.getDateFin(), new Date())){
+                            if (equipe.getOrganisation().getMembreEquActifs() == this.equipeMembreDao.countByEquipe(equipe, new Date())){
+                                return  ResponseEntity.status(HttpStatus.LENGTH_REQUIRED).body(new ApiError(HttpStatus.LENGTH_REQUIRED, "Nombre d'membres actifs atteint pour l'équipe", "Access denied"));
+                            }
+                        }
+
+                        EquipeMembres equipeMembre = new EquipeMembres();
+                        EquipeMembrePK pk = new EquipeMembrePK(equipe, membre);
+                        equipeMembre.setId(pk);
+                        this.equipeMembreDao.save(equipeMembre);
+                    }
+                }
+            }
+        }
+
+        return ResponseEntity.ok(equipeSave);
+    }
+
+    @RequestMapping(value = { "/equipe/add/membre/{id}" }, method = { RequestMethod.PUT })
+    public ResponseEntity<?> membreUpdate(@Valid @RequestBody final LongRequest request,
+                                          @PathVariable(value = "id") Long id,
+                                          @CurrentUser final UserDetailsImpl currentUser)
+            throws MessagingException {
+        Equipes equipe = this.equipeDao.selectById(id);
+
+        if (equipe!=null){
+            if (request.getIds().size()>0){
+                for (Long eq :
+                        request.getIds()) {
+                    Membres membre = this.membreDao.selectById(eq);
+                    if (Helpers.compareDate(membre.getDateFin(), new Date())){
+                        if (equipe.getOrganisation().getMembreEquActifs() == this.equipeMembreDao.countByEquipe(equipe, new Date())){
+                            return  ResponseEntity.status(HttpStatus.LENGTH_REQUIRED).body(new ApiError(HttpStatus.LENGTH_REQUIRED, "Nombre d'membres actifs atteint pour l'équipe", "Access denied"));
+                        }
+                    }
+
+                    EquipeMembres equipeMembre = new EquipeMembres();
+                    EquipeMembrePK pk = new EquipeMembrePK(equipe, membre);
+                    equipeMembre.setId(pk);
+                    this.equipeMembreDao.save(equipeMembre);
+                }
+            }
+        }
+        return ResponseEntity.ok(new ApiMessage(HttpStatus.OK, "Membre ajouter avec succes"));
     }
     
     @RequestMapping(value = { "/equipe/delete/{id}" }, method = { RequestMethod.DELETE })
@@ -100,6 +198,24 @@ public class EquipeController {
             }
         }
     }
+
+    @RequestMapping(value = { "/equipes/membre/delete/{id}" }, method = { RequestMethod.DELETE })
+    public void equipeDelete(@PathVariable(value = "id") Long id,
+                             @Valid @RequestBody final LongRequest request) {
+        Equipes equipe = this.equipeDao.selectById(id);
+        if (equipe!=null){
+            if (request.getIds().size()>0){
+                for (Long eq :
+                        request.getIds()) {
+                    Membres membre = this.membreDao.selectById(eq);
+                    EquipeMembrePK pk = new EquipeMembrePK(equipe, membre);
+                    EquipeMembres equipeMembre = this.equipeMembreDao.selectById(pk);
+//                    equipeMembre.setId(pk);
+                    this.equipeMembreDao.delete(equipeMembre);
+                }
+            }
+        }
+    }
     @RequestMapping(value = { "/equipes" }, method = { RequestMethod.GET })
     @ResponseStatus(HttpStatus.OK)
     public List<Equipes> selectAll() {
@@ -111,6 +227,16 @@ public class EquipeController {
         final Accounts account = this.accountDao.selectById(currentUser.getId());
         List<Long> ids = this.accountOrganisationDao.selectByAccountIds(account);
         return this.equipeDao.seletByOrganisation(ids);
+    }
+    @RequestMapping(value = { "/equipes/membre/actif/not/{id}" }, method = { RequestMethod.GET })
+    @ResponseStatus(HttpStatus.OK)
+    public List<Equipes> selectAllActifNot(@PathVariable(value = "id") Long id,
+                                             @CurrentUser final UserDetailsImpl currentUser) {
+        final Accounts account = this.accountDao.selectById(currentUser.getId());
+        List<Long> ids = this.accountOrganisationDao.selectByAccountIds(account);
+        final Membres membre = this.membreDao.selectById(id);
+        List<Equipes> equipes = this.equipeDao.selectOrganisation(ids, membre, new Date());
+        return equipes;
     }
     @RequestMapping(value = { "/equipes/evenement/{id}" }, method = { RequestMethod.GET })
     @ResponseStatus(HttpStatus.OK)
@@ -367,5 +493,91 @@ public class EquipeController {
 
         return pages;
     }
+    @RequestMapping(value ="/equipes/membre/filter/page/{page}", method = RequestMethod.POST)
+    @ResponseBody
+    public ResponsePage selectPageFilter(@PathVariable(value = "page") int page,
+                                         @Valid @RequestBody final FilterRequest request,
+                                         @CurrentUser final UserDetailsImpl currentUser) {
 
+        Pageable pageable = PageRequest.of(page - 1, page_size, sortByCreatedDesc());
+        final Accounts account = this.accountDao.selectById(currentUser.getId());
+        List<Long> ids = this.accountOrganisationDao.selectByAccountIds(account);
+        List<Equipes> equipes = new ArrayList<>();
+        Long total = 0L;
+        if (request.getEtats().size() == 2){
+            if (request.getNoms().size() > 0){
+                equipes = this.equipeDao.recherche(ids, request.getNoms(), pageable);
+                total = this.equipeDao.countRecherche(ids, request.getNoms());
+            } else {
+                equipes = this.equipeDao.recherche(ids, pageable);
+                total = this.equipeDao.countRecherche(ids);
+            }
+        } else if (request.getEtats().size() == 0) {
+            equipes = this.equipeDao.recherche(ids, request.getNoms(), pageable);
+            total = this.equipeDao.countRecherche(ids, request.getNoms());
+        } else {
+            if (request.getEtats().size() == 1){
+                Boolean etat = request.getEtats().get(0);
+                if (etat==true){
+                    equipes = this.equipeDao.rechercheActif(ids, request.getNoms(), new Date(), pageable);
+                    total = this.equipeDao.countRechercheActif(ids, request.getNoms(), new Date());
+                }else {
+                    equipes = this.equipeDao.rechercheInactif(ids, request.getNoms(), new Date(), pageable);
+                    total = this.equipeDao.countRechercheInactif(ids, request.getNoms(), new Date());
+                }
+            }
+        }
+
+        ResponsePage pages = new ResponsePage();
+
+        Long lastPage;
+
+        if (total > 0){
+            pages.setTotal(total);
+            pages.setPer_page(page_size);
+            pages.setCurrent_page(page);
+            if (total % page_size == 0){
+                lastPage = total/page_size;
+            } else {
+                lastPage = (total/page_size)+1;
+
+            }
+            pages.setLast_page(lastPage);
+            pages.setFirst_page_url(url_equipe_page+1);
+            pages.setLast_page_url(url_equipe_page+lastPage);
+            if (page >= lastPage){
+                pages.setNext_page_url("");
+            }else {
+                pages.setNext_page_url(url_equipe_page+(page+1));
+            }
+
+            if (page == 1){
+                pages.setPrev_page_url("");
+                pages.setFrom(1L);
+                pages.setTo(Long.valueOf(page_size));
+            } else {
+                pages.setPrev_page_url(url_equipe_page+(page-1));
+                pages.setFrom(1L + (Long.valueOf(page_size)*(page -1)));
+                pages.setTo(Long.valueOf(page_size) * page);
+            }
+            pages.setPath(path);
+            pages.setData(equipes);
+        } else {
+            pages.setTotal(0L);
+            pages.setCurrent_page(0);
+            pages.setFrom(0L);
+            pages.setLast_page(0L);
+            pages.setPer_page(0);
+            pages.setFrom(0L);
+            pages.setFirst_page_url("");
+            pages.setNext_page_url("");
+            pages.setLast_page_url("");
+            pages.setPrev_page_url("");
+            pages.setTo(0L);
+            pages.setPath(path);
+            pages.setData(new ArrayList<>());
+        }
+
+        return pages;
+    }
 }

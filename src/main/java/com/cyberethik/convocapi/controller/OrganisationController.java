@@ -72,6 +72,12 @@ public class OrganisationController {
         organisation.setNom(nom);
         organisation.setDesciption(desciption);
         organisation.setDevise(devise);
+        organisation.setEquipeMax(2L);
+        organisation.setEvenementActifs(2L);
+        organisation.setMembreEquActifs(25L);
+        organisation.setMembreEventMax(50L);
+        organisation.setMembreActifs(50L);
+        organisation.setConvocMax(2L);
 
         if (logo != null ) {
             if (!logo.isEmpty()){
@@ -100,6 +106,11 @@ public class OrganisationController {
 
         if (logo != null ) {
             if (!logo.isEmpty()){
+                if (organisation.getLogo()!=null){
+                    if (this.fileStorageService.exist(organisation.getLogo())){
+                        this.fileStorageService.deleteOne(organisation.getLogo());
+                    }
+                }
                 this.fileStorageService.store(logo);
                 if (this.fileStorageService.exist(logo.getOriginalFilename())) {
                     String s2 = this.fileStorageService.rename(logo.getOriginalFilename(), Long.valueOf(this.fileDao.counts()+1));

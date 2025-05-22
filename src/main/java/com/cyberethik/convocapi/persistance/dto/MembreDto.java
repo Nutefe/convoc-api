@@ -26,10 +26,13 @@ public class MembreDto
     private Long id;
     private String libelle;
     private String adresse;
+    private String email;
+    private String telephone;
     private Accounts account;
     private Responsables responsable;
     private List<Equipes> equipes = new ArrayList<>();
     private boolean actif;
+    private boolean hasResponsable;
     @JsonFormat(pattern="yyyy-MM-dd HH:mm:ss")
     private Date dateFin;
     @JsonFormat(pattern="yyyy-MM-dd HH:mm:ss")

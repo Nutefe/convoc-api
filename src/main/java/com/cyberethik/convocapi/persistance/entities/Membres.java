@@ -39,6 +39,10 @@ public class Membres implements Serializable
     private String libelle;
     @Column(name = "adresse")
     private String adresse;
+    @Column(name = "email", unique = true)
+    private String email;
+    @Column(name = "telephone")
+    private String telephone;
     @JoinColumn(name = "account", referencedColumnName = "id")
     @ManyToOne(fetch = FetchType.EAGER)
     private Accounts account;
@@ -46,8 +50,13 @@ public class Membres implements Serializable
     @ManyToOne(fetch = FetchType.EAGER)
     @OnDelete(action = OnDeleteAction.CASCADE)
     private Responsables responsable;
+    @JoinColumn(name = "organisation", referencedColumnName = "id")
+    @ManyToOne(fetch = FetchType.EAGER)
+    private Organisations organisation;
     @Column(name = "actif", columnDefinition="tinyint(1) default 0")
     private boolean actif;
+    @Column(name = "hasResponsable", columnDefinition="tinyint(1) default 0")
+    private boolean hasResponsable;
     @Column(name = "dateFin")
     @Temporal(TemporalType.TIMESTAMP)
     @JsonFormat(pattern="yyyy-MM-dd HH:mm:ss")

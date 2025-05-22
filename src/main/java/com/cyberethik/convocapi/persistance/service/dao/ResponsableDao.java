@@ -12,6 +12,7 @@ import java.util.Optional;
 
 public interface ResponsableDao {
     Optional<Responsables> findById(Long id);
+    Responsables selectByEmail(String email);
     Responsables save(Responsables responsable);
     Responsables selectById(Long id);
     List<Responsables> findByDeletedFalseOrderByIdDesc();

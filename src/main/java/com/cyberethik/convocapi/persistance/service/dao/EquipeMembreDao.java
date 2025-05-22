@@ -4,6 +4,7 @@ import com.cyberethik.convocapi.persistance.entities.*;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
 
+import java.util.Date;
 import java.util.List;
 
 public interface EquipeMembreDao {
@@ -31,4 +32,6 @@ public interface EquipeMembreDao {
     void delete(List<EquipeMembres> equipeMembres);
     Long countByOrganisation(Long orgs);
     List<Membres> selectByEquipes(List<Long> eqp);
+    Long countByEquipe(Equipes equipe, Date end);
+    List<Membres> membreByEquipe(Equipes equipe, Date end);
 }

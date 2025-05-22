@@ -122,10 +122,10 @@ public class FileSystemStorageService implements StorageService
             File file = path.toFile();
 
             if (file.delete()){
-                System.out.println(file.getName()+" is deleted");
+//                System.out.println(file.getName()+" is deleted");
                 return true;
             } else {
-                System.out.println("Delete operation is failed");
+//                System.out.println("Delete operation is failed");
                 return false;
             }
         } catch (Exception e){

@@ -1,5 +1,6 @@
 package com.cyberethik.convocapi.persistance.repository;
 
+import com.cyberethik.convocapi.persistance.entities.Accounts;
 import com.cyberethik.convocapi.persistance.entities.Equipes;
 import com.cyberethik.convocapi.persistance.entities.Responsables;
 import com.cyberethik.convocapi.persistance.entities.Responsables;
@@ -13,7 +14,8 @@ import java.util.List;
 public interface ResponsableRepository extends JpaRepository<Responsables, Long> {
     @Query("SELECT x FROM Responsables x WHERE x.deleted = false AND x.id=:id")
     Responsables selectById(Long id);
-
+    @Query("SELECT r FROM Responsables r WHERE r.email=:email")
+    Responsables selectByEmail(String email);
     List<Responsables> findByDeletedFalseOrderByIdDesc();
 
     List<Responsables> findByDeletedTrueOrderByIdDesc();

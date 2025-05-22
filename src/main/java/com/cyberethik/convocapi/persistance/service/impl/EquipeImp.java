@@ -1,12 +1,14 @@
 package com.cyberethik.convocapi.persistance.service.impl;
 
 import com.cyberethik.convocapi.persistance.entities.Equipes;
+import com.cyberethik.convocapi.persistance.entities.Membres;
 import com.cyberethik.convocapi.persistance.repository.EquipeRepository;
 import com.cyberethik.convocapi.persistance.service.dao.EquipeDao;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -94,5 +96,50 @@ public class EquipeImp implements EquipeDao {
     @Override
     public Long countByOrganisation(Long orgs) {
         return repository.countByOrganisation(orgs);
+    }
+
+    @Override
+    public List<Equipes> recherche(List<Long> orgs, List<String> noms, Pageable pageable) {
+        return repository.recherche(orgs, noms, pageable);
+    }
+
+    @Override
+    public Long countRecherche(List<Long> orgs, List<String> noms) {
+        return repository.countRecherche(orgs, noms);
+    }
+
+    @Override
+    public List<Equipes> rechercheActif(List<Long> orgs, List<String> noms, Date endDate, Pageable pageable) {
+        return repository.rechercheActif(orgs, noms, endDate, pageable);
+    }
+
+    @Override
+    public Long countRechercheActif(List<Long> orgs, List<String> noms, Date endDate) {
+        return repository.countRechercheActif(orgs, noms, endDate);
+    }
+
+    @Override
+    public List<Equipes> rechercheInactif(List<Long> orgs, List<String> noms, Date endDate, Pageable pageable) {
+        return repository.rechercheInactif(orgs, noms, endDate, pageable);
+    }
+
+    @Override
+    public Long countRechercheInactif(List<Long> orgs, List<String> noms, Date endDate) {
+        return repository.countRechercheInactif(orgs, noms, endDate);
+    }
+
+    @Override
+    public List<Equipes> recherche(List<Long> orgs, Pageable pageable) {
+        return repository.recherche(orgs, pageable);
+    }
+
+    @Override
+    public List<Equipes> selectOrganisation(List<Long> orgs, Membres membre, Date endDate) {
+        return repository.selectOrganisation(orgs, membre, endDate);
+    }
+
+    @Override
+    public Long countRecherche(List<Long> orgs) {
+        return repository.countRecherche(orgs);
     }
 }

@@ -39,6 +39,18 @@ public class Organisations implements Serializable
     private String desciption;
     @Column(name = "devise")
     private String devise;
+    @Column(name = "equipeMax")
+    private Long equipeMax = 2L;
+    @Column(name = "evenementActifs")
+    private Long evenementActifs = 2L;
+    @Column(name = "membreEquActifs")
+    private Long membreEquActifs = 25L;
+    @Column(name = "membreEventMax")
+    private Long membreEventMax = 50L;
+    @Column(name = "membreActifs")
+    private Long membreActifs = 50L;
+    @Column(name = "convocMax")
+    private Long convocMax = 2L;
     @Column(name = "logo", columnDefinition = "varchar(255) default ''")
     private String logo;
     @Column(name = "deleted", columnDefinition="tinyint(1) default 0")

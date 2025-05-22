@@ -5,6 +5,7 @@ import com.cyberethik.convocapi.exception.TokenRefreshException;
 import com.cyberethik.convocapi.messaging.emails.model.Email;
 import com.cyberethik.convocapi.messaging.emails.service.EmailSenderService;
 import com.cyberethik.convocapi.persistance.entities.Accounts;
+import com.cyberethik.convocapi.persistance.entities.Convocations;
 import com.cyberethik.convocapi.persistance.entities.RefreshTokens;
 import com.cyberethik.convocapi.persistance.entities.Reponses;
 import com.cyberethik.convocapi.persistance.service.dao.*;
@@ -22,7 +23,9 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -81,13 +84,16 @@ public class AuthController {
 
     SecurityContextHolder.getContext().setAuthentication(authentication);
     String jwt = jwtUtils.generateJwtToken(authentication);
-    
+
     UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+    ResponseCookie jwtCookie = jwtUtils.generateJwtCookie(userDetails);
 
     Accounts account = accountDao.findById(userDetails.getId()).orElseThrow(() -> new RuntimeException("Error: Profil is not found."));
-
     final RefreshTokens refreshTokens = this.refreshTokenDao.createRefreshToken(userDetails.getEmail());
-    return ResponseEntity.ok(new JwtResponse(jwt, refreshTokens.getToken(), account));
+
+    return ResponseEntity.ok()
+            .header(HttpHeaders.SET_COOKIE, jwtCookie.toString())
+            .body(new JwtResponse(jwt, refreshTokens.getToken(), account));
   }
 
   @PostMapping({ "/auth/refreshtoken" })
@@ -108,8 +114,20 @@ public class AuthController {
                     "Refresh token is not in database!"));
   }
 
+  @PostMapping("/auth/signout")
+  public ResponseEntity<?> logoutUser() {
+    ResponseCookie cookie = jwtUtils.getCleanJwtCookie();
+    return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, cookie.toString())
+            .body(new ApiMessage(HttpStatus.OK, "You've been signed out!"));
+  }
+
   @RequestMapping(value = { "/auth/forgot/password" }, method = { RequestMethod.GET })
-  public void forgotPassword(@RequestParam(name="email") String email) throws MessagingException {
+  public ResponseEntity<?> forgotPassword(@RequestParam(name="email") String email) throws MessagingException {
+
+    if (!accountDao.existsByEmail(email)){
+      return  ResponseEntity.badRequest().body(new ApiError(HttpStatus.BAD_REQUEST, "Error email n'existe pas", "NOT FOUND"));
+    }
+
     Accounts accounts = this.accountDao.selectByEmail(email);
     if (accounts!=null){
       Email emailInit = new Email();
@@ -119,10 +137,11 @@ public class AuthController {
       emailInit.setTemplate("email-forgot-password.html");
       Map<String, Object> properties = new HashMap<>();
       properties.put("name", accounts.getLibelle());
-      properties.put("link", Helpers.base_client_url+"#/update-password/"+accounts.getSlug());
+      properties.put("link", Helpers.base_client_url+"update-password/"+accounts.getSlug());
       emailInit.setProperties(properties);
       emailSenderService.sendHtmlMessage(emailInit);
     }
+    return ResponseEntity.ok(new ApiMessage(HttpStatus.OK, "Email envoyer avec succes"));
   }
 
   @RequestMapping(value = { "/auth/email/send" }, method = { RequestMethod.GET })
@@ -144,6 +163,14 @@ public class AuthController {
 
   @RequestMapping(value = { "/auth/reponse/save" }, method = { RequestMethod.POST })
   public ResponseEntity<?> reponseSave(@Valid @RequestBody final ReponseRequest request) throws MessagingException {
+    Convocations convocation = this.convocationDao.selectBySlug(request.getSlug());
+    if (convocation == null){
+      return  ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiError(HttpStatus.BAD_REQUEST, "Cette convocation n'existe pas", "Access denied"));
+    }
+    Reponses reponseInit = this.reponseDao.findTop1(convocation);
+    if (reponseInit!=null){
+      return  ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiError(HttpStatus.BAD_REQUEST, "Vous avez déjà répondu à cette convocation", "Access denied"));
+    }
     Reponses reponse = new Reponses();
     reponse.setChoix(request.getChoix());
     reponse.setDescription(request.getDescription());
@@ -158,7 +185,9 @@ public class AuthController {
                                          @RequestParam(name="slug") String slug) {
     Accounts account = this.accountDao.selectBySlug(slug);
     this.accountDao.updatePassword(account.getId(), request.getNouveau());
-    return ResponseEntity.ok(new ApiMessage(HttpStatus.OK, "Mot de passe modifier avec succès"));
+    ResponseCookie cookie = jwtUtils.getCleanJwtCookie();
+    return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, cookie.toString())
+            .body(new ApiMessage(HttpStatus.OK, "Mot de passe modifier avec succès"));
   }
 
 //  @RequestMapping(value = { "/auth/candidat/signin/up" }, method = { RequestMethod.POST })
@@ -243,6 +272,11 @@ public class AuthController {
 //    }
 //  }
 
+  @RequestMapping(value = { "/auth/convocation/slug/{slug}" }, method = { RequestMethod.GET })
+  public ResponseEntity<?> convocationUpdate(@PathVariable(value = "slug") String slug) throws MessagingException {
+    final Convocations convocation = this.convocationDao.selectBySlug(slug);
+    return ResponseEntity.ok(convocation);
+  }
   @RequestMapping(value = { "/auth/check/email/exist" }, method = { RequestMethod.GET })
   @ResponseStatus(HttpStatus.OK)
   public Boolean checkEmail(@RequestParam(name="email") String email) {

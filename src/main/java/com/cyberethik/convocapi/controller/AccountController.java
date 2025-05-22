@@ -23,7 +23,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -103,7 +105,9 @@ public class AccountController {
         Accounts account = this.accountDao.selectById(id);
         if (this.passwordEncoder.matches(request.getAncien(), account.getPassword())) {
             this.accountDao.updatePassword(account.getId(), request.getNouveau());
-            return ResponseEntity.ok(new ApiMessage(HttpStatus.OK, "Mot de passe modifier avec succès"));
+            ResponseCookie cookie = jwtUtils.getCleanJwtCookie();
+            return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, cookie.toString())
+                    .body(new ApiMessage(HttpStatus.OK, "Mot de passe modifier avec succès"));
         }
         else {
             return ResponseEntity.internalServerError().body(new ApiMessage(HttpStatus.INTERNAL_SERVER_ERROR, "Erreur de modification ancien mot de passe incorrect"));

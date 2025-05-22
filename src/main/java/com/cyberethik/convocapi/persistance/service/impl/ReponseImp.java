@@ -1,6 +1,8 @@
 package com.cyberethik.convocapi.persistance.service.impl;
 
+import com.cyberethik.convocapi.persistance.entities.Convocations;
 import com.cyberethik.convocapi.persistance.entities.Evenements;
+import com.cyberethik.convocapi.persistance.entities.Membres;
 import com.cyberethik.convocapi.persistance.entities.Reponses;
 import com.cyberethik.convocapi.persistance.repository.ReponseRepository;
 import com.cyberethik.convocapi.persistance.service.dao.ReponseDao;
@@ -8,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -100,6 +103,66 @@ public class ReponseImp implements ReponseDao {
     @Override
     public Long countRecherche(List<Long> events, String search) {
         return repository.countRecherche(events, search);
+    }
+
+    @Override
+    public Long countReponse(Long org, Date endDate) {
+        return repository.countReponse(org, endDate);
+    }
+
+    @Override
+    public Long countReponsePositif(Evenements evenement) {
+        return repository.countReponsePositif(evenement);
+    }
+
+    @Override
+    public Long countReponseNegatif(Evenements evenement) {
+        return repository.countReponseNegatif(evenement);
+    }
+
+    @Override
+    public List<Membres> recherche(Evenements evenement, List<String> equipes, List<String> membres, List<Date> dateReponse, List<String> reponses, Pageable pageable) {
+        return repository.recherche(evenement, equipes, membres, dateReponse, reponses, pageable);
+    }
+
+    @Override
+    public Long countRecherche(Evenements evenement, List<String> equipes, List<String> membres, List<Date> dateReponse, List<String> reponses) {
+        return repository.countRecherche(evenement, equipes, membres, dateReponse, reponses);
+    }
+
+    @Override
+    public List<Reponses> selectByEvenement(Evenements evenement) {
+        return repository.selectByEvenement(evenement);
+    }
+
+    @Override
+    public List<Reponses> membreEvenement(Evenements evenement, Membres membre) {
+        return repository.membreEvenement(evenement, membre);
+    }
+
+    @Override
+    public List<Membres> recherche(Evenements evenement, List<String> equipes, List<String> membres, Date dateReponse1, Date dateReponse2, List<String> reponses, Pageable pageable) {
+        return repository.recherche(evenement, equipes, membres, dateReponse1, dateReponse2, reponses, pageable);
+    }
+
+    @Override
+    public Long countRecherche(Evenements evenement, List<String> equipes, List<String> membres, Date dateReponse1, Date dateReponse2, List<String> reponses) {
+        return repository.countRecherche(evenement, equipes, membres, dateReponse1, dateReponse2, reponses);
+    }
+
+    @Override
+    public List<Membres> recherche(Evenements evenement, List<String> equipes, List<String> membres, List<String> reponses, Pageable pageable) {
+        return repository.recherche(evenement, equipes, membres, reponses, pageable);
+    }
+
+    @Override
+    public Long countRecherche(Evenements evenement, List<String> equipes, List<String> membres, List<String> reponses) {
+        return repository.countRecherche(evenement, equipes, membres, reponses);
+    }
+
+    @Override
+    public Reponses findTop1(Convocations convocation) {
+        return repository.findTop1ByConvocationAndDeletedFalseOrderByIdDesc(convocation);
     }
 
     @Override

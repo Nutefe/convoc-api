@@ -5,6 +5,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+import java.util.Date;
 import java.util.List;
 
 public interface EquipeMembreRepository extends JpaRepository<EquipeMembres, EquipeMembrePK> {
@@ -95,4 +96,8 @@ public interface EquipeMembreRepository extends JpaRepository<EquipeMembres, Equ
     Long countByOrganisation(Long orgs);
     @Query("SELECT DISTINCT x.id.membre FROM EquipeMembres x WHERE x.deleted = false AND x.id.equipe.id IN :eqp")
     List<Membres> selectByEquipes(List<Long> eqp);
+    @Query("SELECT COUNT(DISTINCT x.id.membre) FROM EquipeMembres x WHERE x.deleted = false AND x.id.equipe=:equipe AND x.id.membre.dateFin > :end")
+    Long countByEquipe(Equipes equipe, Date end);
+    @Query("SELECT DISTINCT x.id.membre FROM EquipeMembres x WHERE x.deleted = false AND x.id.equipe=:equipe AND x.id.membre.dateFin > :end")
+    List<Membres> membreByEquipe(Equipes equipe, Date end);
 }

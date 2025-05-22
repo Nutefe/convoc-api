@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.Date;
 import java.util.List;
 
 @Service
@@ -133,5 +134,15 @@ public class EquipeMembreImp implements EquipeMembreDao {
     @Override
     public List<Membres> selectByEquipes(List<Long> eqp) {
         return repository.selectByEquipes(eqp);
+    }
+
+    @Override
+    public Long countByEquipe(Equipes equipe, Date end) {
+        return repository.countByEquipe(equipe, end);
+    }
+
+    @Override
+    public List<Membres> membreByEquipe(Equipes equipe, Date end) {
+        return repository.membreByEquipe(equipe, end);
     }
 }
